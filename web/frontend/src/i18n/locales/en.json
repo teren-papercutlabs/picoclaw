@@ -74,12 +74,13 @@
     "save": "Save"
   },
   "models": {
-    "description": "Configure API keys for each AI provider. Only configured models are available for chat.",
+    "description": "Configure API keys for AI providers. Only configured models are available for chat.",
     "loadError": "Failed to load models",
     "header": {
       "configured": "configured"
     },
-    "currentDefault": "Default model:",
+    "noDefaultHintPrefix": "No default model set yet. Click",
+    "noDefaultHintSuffix": "to set one.",
     "status": {
       "configured": "Configured",
       "unconfigured": "Not configured"
@@ -91,6 +92,10 @@
       "edit": "Edit API key",
       "setDefault": "Set as default",
       "delete": "Delete model"
+    },
+    "defaultOnSave": {
+      "label": "Default Model",
+      "description": "Automatically set this model as default after saving."
     },
     "add": {
       "button": "Add Model",
