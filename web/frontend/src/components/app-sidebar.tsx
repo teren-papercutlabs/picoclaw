@@ -4,6 +4,7 @@ import {
   IconKey,
   IconListDetails,
   IconMessageCircle,
+  IconPlug,
   IconSettings,
 } from "@tabler/icons-react"
 import { Link, useRouterState } from "@tanstack/react-router"
@@ -40,6 +41,13 @@ const navGroups = [
     items: [
       { title: "navigation.models", url: "/models", icon: IconAtom },
       { title: "navigation.credentials", url: "/credentials", icon: IconKey },
+    ],
+  },
+  {
+    label: "navigation.channels_group",
+    defaultOpen: true,
+    items: [
+      { title: "navigation.channels", url: "/channels", icon: IconPlug },
     ],
   },
   {
