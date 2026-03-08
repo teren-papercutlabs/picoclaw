@@ -1,0 +1,98 @@
+{
+  "agents": {
+    "defaults": {
+      "workspace": "/Users/pcloffice/pcl-dev/picoclaw/workspaces/serene-glow",
+      "restrict_to_workspace": true,
+      "model_name": "gemini-flash-lite",
+      "max_tokens": 2048,
+      "temperature": 0.7,
+      "max_tool_iterations": 5,
+      "summarize_message_threshold": 30,
+      "summarize_token_percent": 75
+    }
+  },
+  "model_list": [
+    {
+      "model_name": "gemini-flash-lite",
+      "model": "gemini-2.0-flash-lite",
+      "api_key": "YOUR_GEMINI_API_KEY",
+      "api_base": "https://generativelanguage.googleapis.com/v1beta"
+    }
+  ],
+  "channels": {
+    "pico": {
+      "enabled": true,
+      "token": "YOUR_BOT_TOKEN",
+      "allow_token_query": true,
+      "allow_origins": [
+        "*"
+      ],
+      "ping_interval": 30,
+      "placeholder": {
+        "enabled": true,
+        "text": "Layla is composing a response... \u2728"
+      }
+    }
+  },
+  "tools": {
+    "allow_read_paths": [
+      "/Users/pcloffice/pcl-dev/picoclaw/workspaces/serene-glow"
+    ],
+    "allow_write_paths": [],
+    "web": {
+      "enabled": false
+    },
+    "exec": {
+      "enabled": false
+    },
+    "cron": {
+      "enabled": false
+    },
+    "mcp": {
+      "enabled": false
+    },
+    "skills": {
+      "enabled": false
+    },
+    "append_file": {
+      "enabled": false
+    },
+    "edit_file": {
+      "enabled": false
+    },
+    "write_file": {
+      "enabled": false
+    },
+    "spawn": {
+      "enabled": false
+    },
+    "subagent": {
+      "enabled": false
+    },
+    "read_file": {
+      "enabled": true
+    },
+    "list_dir": {
+      "enabled": true
+    },
+    "find_skills": {
+      "enabled": false
+    },
+    "install_skill": {
+      "enabled": false
+    },
+    "message": {
+      "enabled": false
+    },
+    "web_fetch": {
+      "enabled": false
+    }
+  },
+  "heartbeat": {
+    "enabled": false
+  },
+  "gateway": {
+    "host": "127.0.0.1",
+    "port": 18810
+  }
+}
