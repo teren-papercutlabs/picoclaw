@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Serene Glow — AI Concierge</title>
+  <style>
+    :root {
+      --gold: #C9A96E;
+      --gold-light: #E8D5B0;
+      --gold-dark: #9B7B45;
+      --blush: #F5E6E0;
+      --blush-dark: #E8C8BE;
+      --cream: #FAF6F2;
+      --white: #FFFFFF;
+      --text-dark: #2C1F14;
+      --text-mid: #5C4A3A;
+      --text-light: #9C8070;
+      --bubble-out: #C9A96E;
+      --bubble-in: #FFFFFF;
+      --shadow: rgba(44, 31, 20, 0.08);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--cream);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Chat container */
+    .chat-wrapper {
+      width: 100%;
+      max-width: 480px;
+      height: 100vh;
+      max-height: 820px;
+      display: flex;
+      flex-direction: column;
+      background: var(--white);
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(44, 31, 20, 0.15);
+      overflow: hidden;
+    }
+
+    @media (max-width: 520px) {
+      .chat-wrapper {
+        border-radius: 0;
+        max-height: 100vh;
+        height: 100vh;
+      }
+    }
+
+    /* Header */
+    .chat-header {
+      background: linear-gradient(135deg, #2C1F14 0%, #4A3226 100%);
+      padding: 20px 20px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .header-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .header-info {
+      flex: 1;
+    }
+
+    .header-title {
+      color: var(--white);
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .header-subtitle {
+      color: var(--gold-light);
+      font-size: 12px;
+      margin-top: 2px;
+      opacity: 0.85;
+    }
+
+    .header-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--gold-light);
+      font-size: 12px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #4CAF50;
+    }
+
+    .status-dot.connecting {
+      background: #FF9800;
+      animation: pulse 1.5s infinite;
+    }
+
+    .status-dot.disconnected {
+      background: #f44336;
+    }
+
+    .reset-btn {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: var(--white);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .reset-btn:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    /* Messages area */
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 16px;
+      background: var(--cream);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scroll-behavior: smooth;
+    }
+
+    .messages::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    .messages::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .messages::-webkit-scrollbar-thumb {
+      background: var(--gold-light);
+      border-radius: 2px;
+    }
+
+    /* Date separator */
+    .date-sep {
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-light);
+      margin: 4px 0;
+      background: var(--cream);
+    }
+
+    /* Message bubbles */
+    .message {
+      display: flex;
+      flex-direction: column;
+      max-width: 78%;
+      animation: fadeInUp 0.2s ease;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      align-items: flex-end;
+    }
+
+    .message.bot {
+      align-self: flex-start;
+      align-items: flex-start;
+    }
+
+    .bubble {
+      padding: 10px 14px;
+      border-radius: 18px;
+      font-size: 14.5px;
+      line-height: 1.5;
+      word-break: break-word;
+      white-space: pre-wrap;
+      position: relative;
+    }
+
+    .message.user .bubble {
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+      color: var(--white);
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 2px 8px rgba(155, 123, 69, 0.3);
+    }
+
+    .message.bot .bubble {
+      background: var(--white);
+      color: var(--text-dark);
+      border-bottom-left-radius: 4px;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+
+    .msg-time {
+      font-size: 11px;
+      color: var(--text-light);
+      margin-top: 4px;
+      padding: 0 4px;
+    }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 4px;
+    }
+
+    .typing-bubble {
+      background: var(--white);
+      border-radius: 18px;
+      border-bottom-left-radius: 4px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--gold);
+      animation: bounce 1.2s infinite;
+    }
+
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    /* Lead capture badge */
+    .lead-captured {
+      background: linear-gradient(135deg, #E8F5E9, #C8E6C9);
+      border: 1px solid #A5D6A7;
+      border-radius: 12px;
+      padding: 8px 14px;
+      font-size: 12px;
+      color: #2E7D32;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+      align-self: flex-start;
+      animation: fadeInUp 0.3s ease;
+    }
+
+    /* Quick prompts */
+    .quick-prompts {
+      padding: 10px 16px;
+      background: var(--white);
+      border-top: 1px solid var(--gold-light);
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+
+    .quick-prompts::-webkit-scrollbar {
+      display: none;
+    }
+
+    .quick-prompt-btn {
+      background: var(--blush);
+      border: 1px solid var(--blush-dark);
+      color: var(--text-mid);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12.5px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+
+    .quick-prompt-btn:hover {
+      background: var(--gold-light);
+      border-color: var(--gold);
+      color: var(--text-dark);
+    }
+
+    /* Input area */
+    .input-area {
+      padding: 12px 16px 16px;
+      background: var(--white);
+      border-top: 1px solid rgba(201, 169, 110, 0.2);
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      flex-shrink: 0;
+    }
+
+    .input-wrap {
+      flex: 1;
+      position: relative;
+    }
+
+    #msg-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid var(--gold-light);
+      border-radius: 22px;
+      font-size: 14.5px;
+      font-family: inherit;
+      color: var(--text-dark);
+      background: var(--cream);
+      resize: none;
+      outline: none;
+      max-height: 120px;
+      min-height: 42px;
+      line-height: 1.4;
+      transition: border-color 0.2s;
+    }
+
+    #msg-input:focus {
+      border-color: var(--gold);
+      background: var(--white);
+    }
+
+    #msg-input::placeholder {
+      color: var(--text-light);
+    }
+
+    #send-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(155, 123, 69, 0.35);
+    }
+
+    #send-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 4px 12px rgba(155, 123, 69, 0.45);
+    }
+
+    #send-btn:active {
+      transform: scale(0.97);
+    }
+
+    #send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    #send-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: white;
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-5px); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-light);
+    }
+
+    .empty-state .logo {
+      font-size: 36px;
+      margin-bottom: 12px;
+    }
+
+    .empty-state h3 {
+      color: var(--text-mid);
+      font-size: 16px;
+      margin-bottom: 6px;
+    }
+
+    .empty-state p {
+      font-size: 13px;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+<div class="chat-wrapper">
+
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="header-avatar">✨</div>
+    <div class="header-info">
+      <div class="header-title">Serene Glow Salon & Spa</div>
+      <div class="header-subtitle">Dubai Marina · AI Concierge</div>
+    </div>
+    <div class="header-status">
+      <div class="status-dot connecting" id="status-dot"></div>
+      <span id="status-text">Connecting</span>
+    </div>
+    <button class="reset-btn" onclick="resetChat()">New Chat</button>
+  </div>
+
+  <!-- Quick prompts (shown before first message) -->
+  <div class="quick-prompts" id="quick-prompts">
+    <button class="quick-prompt-btn" onclick="sendQuick('What treatments do you offer?')">What treatments do you offer?</button>
+    <button class="quick-prompt-btn" onclick="sendQuick('Tell me about your packages')">Tell me about packages</button>
+    <button class="quick-prompt-btn" onclick="sendQuick('I\'d like to book an appointment')">Book an appointment</button>
+    <button class="quick-prompt-btn" onclick="sendQuick('What are your current promotions?')">Current promotions</button>
+    <button class="quick-prompt-btn" onclick="sendQuick('Where are you located?')">Location & hours</button>
+  </div>
+
+  <!-- Messages -->
+  <div class="messages" id="messages">
+    <div class="empty-state" id="empty-state">
+      <div class="logo">🌿</div>
+      <h3>Welcome to Serene Glow</h3>
+      <p>Your personal concierge is here.<br>Ask about our treatments, prices, or book an appointment.</p>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="input-area">
+    <div class="input-wrap">
+      <textarea
+        id="msg-input"
+        placeholder="Message Layla..."
+        rows="1"
+        onkeydown="handleKeydown(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+    </div>
+    <button id="send-btn" onclick="sendMessage()" title="Send">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+      </svg>
+    </button>
+  </div>
+
+</div>
+
+<script>
+  // Configuration
+  const WS_URL = 'ws://localhost:18810/pico/ws';
+  const TOKEN = 'sereneglow-demo-2025';
+  const SESSION_ID = 'demo-' + Math.random().toString(36).slice(2, 10);
+
+  let ws = null;
+  let isConnected = false;
+  let reconnectTimer = null;
+  let currentBotMsgEl = null;
+  let currentBotContent = '';
+  let isTyping = false;
+  let leadCaptured = false;
+
+  // Lead capture detection keywords
+  const LEAD_KEYWORDS = [
+    "pass your details",
+    "reach out",
+    "confirm within",
+    "let me note that down",
+    "i'll pass",
+    "you'll hear from",
+    "team will confirm"
+  ];
+
+  function connect() {
+    const url = `${WS_URL}?token=${TOKEN}&session_id=${SESSION_ID}`;
+    setStatus('connecting');
+
+    ws = new WebSocket(url);
+
+    ws.onopen = () => {
+      isConnected = true;
+      setStatus('online');
+      clearTimeout(reconnectTimer);
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        handleServerMessage(msg);
+      } catch (e) {
+        console.error('Parse error:', e);
+      }
+    };
+
+    ws.onclose = () => {
+      isConnected = false;
+      setStatus('offline');
+      removeTypingIndicator();
+      reconnectTimer = setTimeout(connect, 3000);
+    };
+
+    ws.onerror = () => {
+      setStatus('offline');
+    };
+  }
+
+  function handleServerMessage(msg) {
+    switch (msg.type) {
+      case 'typing.start':
+        showTypingIndicator();
+        break;
+
+      case 'typing.stop':
+        removeTypingIndicator();
+        break;
+
+      case 'message.create':
+        removeTypingIndicator();
+        const content = msg.payload?.content || '';
+        currentBotMsgEl = appendMessage('bot', content, msg.id);
+        currentBotContent = content;
+        checkLeadCapture(content);
+        break;
+
+      case 'message.update':
+        const updatedContent = msg.payload?.content || '';
+        if (currentBotMsgEl && msg.payload?.message_id) {
+          updateBotMessage(currentBotMsgEl, updatedContent);
+          currentBotContent = updatedContent;
+          checkLeadCapture(updatedContent);
+        }
+        break;
+
+      case 'error':
+        console.error('Server error:', msg.payload);
+        break;
+    }
+  }
+
+  function checkLeadCapture(text) {
+    if (leadCaptured) return;
+    const lower = text.toLowerCase();
+    if (LEAD_KEYWORDS.some(kw => lower.includes(kw))) {
+      leadCaptured = true;
+      // Show badge after a short delay
+      setTimeout(() => {
+        if (currentBotMsgEl) {
+          const badge = document.createElement('div');
+          badge.className = 'lead-captured';
+          badge.innerHTML = '<span>✓</span><span>Lead captured</span>';
+          currentBotMsgEl.parentElement.appendChild(badge);
+          scrollToBottom();
+        }
+      }, 500);
+    }
+  }
+
+  function sendMessage(content) {
+    const input = document.getElementById('msg-input');
+    const text = content || input.value.trim();
+    if (!text || !isConnected) return;
+
+    // Hide empty state
+    const emptyState = document.getElementById('empty-state');
+    if (emptyState) emptyState.remove();
+
+    // Hide quick prompts after first message
+    const qp = document.getElementById('quick-prompts');
+    if (qp) qp.style.display = 'none';
+
+    // Append user message
+    appendMessage('user', text);
+
+    // Clear input
+    if (!content) {
+      input.value = '';
+      input.style.height = 'auto';
+    }
+
+    // Send over WebSocket
+    const msg = {
+      type: 'message.send',
+      session_id: SESSION_ID,
+      timestamp: Date.now(),
+      payload: { content: text }
+    };
+    ws.send(JSON.stringify(msg));
+
+    // Show fake typing indicator after a brief delay
+    setTimeout(() => {
+      if (!isTyping) showTypingIndicator();
+    }, 300);
+  }
+
+  function sendQuick(text) {
+    sendMessage(text);
+  }
+
+  function appendMessage(role, text, msgId) {
+    const messages = document.getElementById('messages');
+
+    const wrapper = document.createElement('div');
+    wrapper.className = `message ${role}`;
+    if (msgId) wrapper.dataset.msgId = msgId;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+
+    const time = document.createElement('div');
+    time.className = 'msg-time';
+    time.textContent = formatTime(new Date());
+
+    wrapper.appendChild(bubble);
+    wrapper.appendChild(time);
+    messages.appendChild(wrapper);
+    scrollToBottom();
+
+    return wrapper;
+  }
+
+  function updateBotMessage(wrapperEl, text) {
+    const bubble = wrapperEl.querySelector('.bubble');
+    if (bubble) {
+      bubble.textContent = text;
+      scrollToBottom();
+    }
+  }
+
+  function showTypingIndicator() {
+    if (isTyping) return;
+    isTyping = true;
+    const messages = document.getElementById('messages');
+
+    const indicator = document.createElement('div');
+    indicator.className = 'message bot';
+    indicator.id = 'typing-indicator';
+
+    const typingBubble = document.createElement('div');
+    typingBubble.className = 'typing-bubble';
+    typingBubble.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+
+    indicator.appendChild(typingBubble);
+    messages.appendChild(indicator);
+    scrollToBottom();
+  }
+
+  function removeTypingIndicator() {
+    isTyping = false;
+    const el = document.getElementById('typing-indicator');
+    if (el) el.remove();
+  }
+
+  function scrollToBottom() {
+    const messages = document.getElementById('messages');
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function setStatus(state) {
+    const dot = document.getElementById('status-dot');
+    const text = document.getElementById('status-text');
+    dot.className = 'status-dot';
+    if (state === 'connecting') {
+      dot.classList.add('connecting');
+      text.textContent = 'Connecting';
+    } else if (state === 'online') {
+      text.textContent = 'Layla is online';
+    } else {
+      dot.classList.add('disconnected');
+      text.textContent = 'Reconnecting...';
+    }
+  }
+
+  function resetChat() {
+    // Clear messages
+    const messages = document.getElementById('messages');
+    messages.innerHTML = `
+      <div class="empty-state" id="empty-state">
+        <div class="logo">🌿</div>
+        <h3>Welcome to Serene Glow</h3>
+        <p>Your personal concierge is here.<br>Ask about our treatments, prices, or book an appointment.</p>
+      </div>`;
+
+    // Reset quick prompts
+    const qp = document.getElementById('quick-prompts');
+    if (qp) qp.style.display = '';
+
+    currentBotMsgEl = null;
+    currentBotContent = '';
+    leadCaptured = false;
+    isTyping = false;
+
+    // Reconnect to get fresh session
+    if (ws) ws.close();
+  }
+
+  function handleKeydown(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+  }
+
+  function formatTime(date) {
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  }
+
+  // Init
+  connect();
+</script>
+
+</body>
+</html>
