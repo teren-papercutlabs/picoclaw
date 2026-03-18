@@ -496,6 +496,16 @@ func (c *TelegramChannel) handleMessage(ctx context.Context, message *telego.Mes
 	// In group chats, apply unified group trigger filtering
 	if message.Chat.Type != "private" {
 		isMentioned := c.isBotMentioned(message)
+		// pcl: treat reply-to-bot as equivalent to mention
+		if !isMentioned && message.ReplyToMessage != nil && message.ReplyToMessage.From != nil {
+			botUsername := ""
+			if c.bot != nil {
+				botUsername = c.bot.Username()
+			}
+			if botUsername != "" && message.ReplyToMessage.From.Username == botUsername {
+				isMentioned = true
+			}
+		}
 		if isMentioned {
 			content = c.stripBotMention(content)
 		}
