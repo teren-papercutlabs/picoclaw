@@ -37,6 +37,7 @@ func NewPicoclawCommand() *cobra.Command {
 		onboard.NewOnboardCommand(),
 		agent.NewAgentCommand(),
 		auth.NewAuthCommand(),
+		NewConfigCommand(), // PCL-DOWNSTREAM: atomic config get/set/list commands that preserve unknown fields
 		gateway.NewGatewayCommand(),
 		status.NewStatusCommand(),
 		cron.NewCronCommand(),

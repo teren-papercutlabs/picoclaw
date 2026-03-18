@@ -5,14 +5,16 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/sipeed/picoclaw/pkg/config"
 )
 
 func makeCandidate(provider, model string) FallbackCandidate {
 	return FallbackCandidate{Provider: provider, Model: model}
 }
 
-func successRun(content string) func(ctx context.Context, provider, model string) (*LLMResponse, error) {
-	return func(ctx context.Context, provider, model string) (*LLMResponse, error) {
+func successRun(content string) func(ctx context.Context, candidate FallbackCandidate) (*LLMResponse, error) {
+	return func(ctx context.Context, candidate FallbackCandidate) (*LLMResponse, error) {
 		return &LLMResponse{Content: content, FinishReason: "stop"}, nil
 	}
 }
@@ -44,7 +46,7 @@ func TestFallback_SecondCandidateSuccess(t *testing.T) {
 	}
 
 	attempt := 0
-	run := func(ctx context.Context, provider, model string) (*LLMResponse, error) {
+	run := func(ctx context.Context, candidate FallbackCandidate) (*LLMResponse, error) {
 		attempt++
 		if attempt == 1 {
 			return nil, errors.New("rate limit exceeded")
@@ -77,7 +79,7 @@ func TestFallback_AllFail(t *testing.T) {
 		makeCandidate("groq", "llama"),
 	}
 
-	run := func(ctx context.Context, provider, model string) (*LLMResponse, error) {
+	run := func(ctx context.Context, candidate FallbackCandidate) (*LLMResponse, error) {
 		return nil, errors.New("rate limit exceeded")
 	}
 
@@ -105,7 +107,7 @@ func TestFallback_ContextCanceled(t *testing.T) {
 	}
 
 	attempt := 0
-	run := func(ctx context.Context, provider, model string) (*LLMResponse, error) {
+	run := func(ctx context.Context, candidate FallbackCandidate) (*LLMResponse, error) {
 		attempt++
 		if attempt == 1 {
 			cancel() // cancel context
@@ -131,7 +133,7 @@ func TestFallback_NonRetriableError(t *testing.T) {
 	}
 
 	attempt := 0
-	run := func(ctx context.Context, provider, model string) (*LLMResponse, error) {
+	run := func(ctx context.Context, candidate FallbackCandidate) (*LLMResponse, error) {
 		attempt++
 		return nil, errors.New("string should match pattern")
 	}
@@ -165,8 +167,8 @@ func TestFallback_CooldownSkip(t *testing.T) {
 		makeCandidate("anthropic", "claude"),
 	}
 
-	run := func(ctx context.Context, provider, model string) (*LLMResponse, error) {
-		if provider == "openai" {
+	run := func(ctx context.Context, candidate FallbackCandidate) (*LLMResponse, error) {
+		if candidate.Provider == "openai" {
 			t.Error("should not call openai (in cooldown)")
 		}
 		return &LLMResponse{Content: "claude response", FinishReason: "stop"}, nil
@@ -205,7 +207,7 @@ func TestFallback_AllInCooldown(t *testing.T) {
 	}
 
 	_, err := fc.Execute(context.Background(), candidates,
-		func(ctx context.Context, provider, model string) (*LLMResponse, error) {
+		func(ctx context.Context, candidate FallbackCandidate) (*LLMResponse, error) {
 			t.Error("should not call any provider (all in cooldown)")
 			return nil, nil
 		})
@@ -254,7 +256,7 @@ func TestFallback_UnclassifiedError(t *testing.T) {
 	}
 
 	attempt := 0
-	run := func(ctx context.Context, provider, model string) (*LLMResponse, error) {
+	run := func(ctx context.Context, candidate FallbackCandidate) (*LLMResponse, error) {
 		attempt++
 		return nil, errors.New("completely unknown internal error")
 	}
@@ -275,7 +277,7 @@ func TestFallback_SuccessResetsCooldown(t *testing.T) {
 	candidates := []FallbackCandidate{makeCandidate("openai", "gpt-4")}
 
 	attempt := 0
-	run := func(ctx context.Context, provider, model string) (*LLMResponse, error) {
+	run := func(ctx context.Context, candidate FallbackCandidate) (*LLMResponse, error) {
 		attempt++
 		if attempt == 1 {
 			ct.MarkFailure("openai", FailoverRateLimit) // simulate failure tracked elsewhere
@@ -318,7 +320,7 @@ func TestImageFallback_DimensionError(t *testing.T) {
 	}
 
 	attempt := 0
-	run := func(ctx context.Context, provider, model string) (*LLMResponse, error) {
+	run := func(ctx context.Context, candidate FallbackCandidate) (*LLMResponse, error) {
 		attempt++
 		return nil, errors.New("image dimensions exceed max 4096x4096")
 	}
@@ -342,7 +344,7 @@ func TestImageFallback_SizeError(t *testing.T) {
 	}
 
 	attempt := 0
-	run := func(ctx context.Context, provider, model string) (*LLMResponse, error) {
+	run := func(ctx context.Context, candidate FallbackCandidate) (*LLMResponse, error) {
 		attempt++
 		return nil, errors.New("image exceeds 20 mb")
 	}
@@ -366,7 +368,7 @@ func TestImageFallback_RetryOnOtherErrors(t *testing.T) {
 	}
 
 	attempt := 0
-	run := func(ctx context.Context, provider, model string) (*LLMResponse, error) {
+	run := func(ctx context.Context, candidate FallbackCandidate) (*LLMResponse, error) {
 		attempt++
 		if attempt == 1 {
 			return nil, errors.New("rate limit exceeded")
@@ -519,6 +521,45 @@ func TestResolveCandidatesWithLookup_AliasWithoutProtocolUsesDefaultProvider(t *
 	}
 	if candidates[0].Model != "glm-5" {
 		t.Fatalf("model = %q, want glm-5", candidates[0].Model)
+	}
+}
+
+func TestResolveCandidatesWithCandidateLookup_PreservesModelConfig(t *testing.T) {
+	cfg := ModelConfig{
+		Primary: "qwen-custom",
+	}
+
+	candidates := ResolveCandidatesWithCandidateLookup(cfg, "openai", func(raw string) (FallbackCandidate, bool) {
+		if raw != "qwen-custom" {
+			return FallbackCandidate{}, false
+		}
+
+		return FallbackCandidate{
+			Provider: "qwen",
+			Model:    "qwen3.5-plus",
+			ModelConfig: &config.ModelConfig{
+				ModelName: "qwen-custom",
+				Model:     "qwen/qwen3.5-plus",
+				APIBase:   "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+				APIKey:    "sk-qwen-test",
+			},
+		}, true
+	})
+
+	if len(candidates) != 1 {
+		t.Fatalf("candidates = %d, want 1", len(candidates))
+	}
+	if candidates[0].Provider != "qwen" {
+		t.Fatalf("provider = %q, want qwen", candidates[0].Provider)
+	}
+	if candidates[0].Model != "qwen3.5-plus" {
+		t.Fatalf("model = %q, want qwen3.5-plus", candidates[0].Model)
+	}
+	if candidates[0].ModelConfig == nil {
+		t.Fatal("ModelConfig = nil, want preserved config")
+	}
+	if candidates[0].ModelConfig.APIBase != "https://dashscope-intl.aliyuncs.com/compatible-mode/v1" {
+		t.Fatalf("api_base = %q, want dashscope-intl", candidates[0].ModelConfig.APIBase)
 	}
 }
 

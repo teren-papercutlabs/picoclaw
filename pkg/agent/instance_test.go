@@ -100,6 +100,7 @@ func TestNewAgentInstance_ResolveCandidatesFromModelListAlias(t *testing.T) {
 		aliasName    string
 		modelName    string
 		apiBase      string
+		apiKey       string
 		wantProvider string
 		wantModel    string
 	}{
@@ -108,6 +109,7 @@ func TestNewAgentInstance_ResolveCandidatesFromModelListAlias(t *testing.T) {
 			aliasName:    "step-3.5-flash",
 			modelName:    "openrouter/stepfun/step-3.5-flash:free",
 			apiBase:      "https://openrouter.ai/api/v1",
+			apiKey:       "sk-openrouter-test",
 			wantProvider: "openrouter",
 			wantModel:    "stepfun/step-3.5-flash:free",
 		},
@@ -116,6 +118,7 @@ func TestNewAgentInstance_ResolveCandidatesFromModelListAlias(t *testing.T) {
 			aliasName:    "glm-5",
 			modelName:    "glm-5",
 			apiBase:      "https://api.z.ai/api/coding/paas/v4",
+			apiKey:       "sk-z-ai-test",
 			wantProvider: "openai",
 			wantModel:    "glm-5",
 		},
@@ -141,6 +144,7 @@ func TestNewAgentInstance_ResolveCandidatesFromModelListAlias(t *testing.T) {
 						ModelName: tt.aliasName,
 						Model:     tt.modelName,
 						APIBase:   tt.apiBase,
+						APIKey:    tt.apiKey,
 					},
 				},
 			}
@@ -156,6 +160,18 @@ func TestNewAgentInstance_ResolveCandidatesFromModelListAlias(t *testing.T) {
 			}
 			if agent.Candidates[0].Model != tt.wantModel {
 				t.Fatalf("candidate model = %q, want %q", agent.Candidates[0].Model, tt.wantModel)
+			}
+			if agent.Candidates[0].ModelConfig == nil {
+				t.Fatal("candidate ModelConfig = nil, want preserved config")
+			}
+			if agent.Candidates[0].ModelConfig.APIBase != tt.apiBase {
+				t.Fatalf("candidate api_base = %q, want %q", agent.Candidates[0].ModelConfig.APIBase, tt.apiBase)
+			}
+			if agent.Candidates[0].ModelConfig.APIKey != tt.apiKey {
+				t.Fatalf("candidate api_key = %q, want %q", agent.Candidates[0].ModelConfig.APIKey, tt.apiKey)
+			}
+			if agent.Candidates[0].ModelConfig.Workspace != tmpDir {
+				t.Fatalf("candidate workspace = %q, want %q", agent.Candidates[0].ModelConfig.Workspace, tmpDir)
 			}
 		})
 	}

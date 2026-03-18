@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/sipeed/picoclaw/pkg/config"
 )
 
 // FallbackChain orchestrates model fallback across multiple candidates.
@@ -14,8 +16,9 @@ type FallbackChain struct {
 
 // FallbackCandidate represents one model/provider to try.
 type FallbackCandidate struct {
-	Provider string
-	Model    string
+	Provider    string
+	Model       string
+	ModelConfig *config.ModelConfig // PCL-DOWNSTREAM: preserve model_list provider settings through fallback execution
 }
 
 // FallbackResult contains the successful response and metadata about all attempts.
@@ -43,7 +46,7 @@ func NewFallbackChain(cooldown *CooldownTracker) *FallbackChain {
 
 // ResolveCandidates parses model config into a deduplicated candidate list.
 func ResolveCandidates(cfg ModelConfig, defaultProvider string) []FallbackCandidate {
-	return ResolveCandidatesWithLookup(cfg, defaultProvider, nil)
+	return resolveCandidates(cfg, defaultProvider, nil)
 }
 
 func ResolveCandidatesWithLookup(
@@ -51,30 +54,69 @@ func ResolveCandidatesWithLookup(
 	defaultProvider string,
 	lookup func(raw string) (resolved string, ok bool),
 ) []FallbackCandidate {
+	if lookup == nil {
+		return resolveCandidates(cfg, defaultProvider, nil)
+	}
+
+	return resolveCandidates(cfg, defaultProvider, func(raw string) (FallbackCandidate, bool) {
+		resolved, ok := lookup(raw)
+		if !ok {
+			return FallbackCandidate{}, false
+		}
+		return FallbackCandidate{Model: resolved}, true
+	})
+}
+
+// ResolveCandidatesWithCandidateLookup allows callers to attach metadata to
+// resolved candidates while keeping the standard provider/model parsing and
+// de-duplication behavior.
+func ResolveCandidatesWithCandidateLookup(
+	cfg ModelConfig,
+	defaultProvider string,
+	lookup func(raw string) (FallbackCandidate, bool),
+) []FallbackCandidate {
+	return resolveCandidates(cfg, defaultProvider, lookup)
+}
+
+func resolveCandidates(
+	cfg ModelConfig,
+	defaultProvider string,
+	lookup func(raw string) (FallbackCandidate, bool),
+) []FallbackCandidate {
 	seen := make(map[string]bool)
 	var candidates []FallbackCandidate
 
 	addCandidate := func(raw string) {
 		candidateRaw := strings.TrimSpace(raw)
+		candidate := FallbackCandidate{}
 		if lookup != nil {
 			if resolved, ok := lookup(candidateRaw); ok {
-				candidateRaw = resolved
+				candidate = resolved
+				if candidate.Provider == "" && strings.TrimSpace(candidate.Model) != "" {
+					candidateRaw = strings.TrimSpace(candidate.Model)
+				}
 			}
 		}
 
-		ref := ParseModelRef(candidateRaw, defaultProvider)
-		if ref == nil {
-			return
+		providerName := strings.TrimSpace(candidate.Provider)
+		modelName := strings.TrimSpace(candidate.Model)
+		if providerName == "" || modelName == "" {
+			ref := ParseModelRef(candidateRaw, defaultProvider)
+			if ref == nil {
+				return
+			}
+			providerName = ref.Provider
+			modelName = ref.Model
 		}
-		key := ModelKey(ref.Provider, ref.Model)
+
+		key := ModelKey(providerName, modelName)
 		if seen[key] {
 			return
 		}
 		seen[key] = true
-		candidates = append(candidates, FallbackCandidate{
-			Provider: ref.Provider,
-			Model:    ref.Model,
-		})
+		candidate.Provider = providerName
+		candidate.Model = modelName
+		candidates = append(candidates, candidate)
 	}
 
 	// Primary first.
@@ -101,7 +143,7 @@ func ResolveCandidatesWithLookup(
 func (fc *FallbackChain) Execute(
 	ctx context.Context,
 	candidates []FallbackCandidate,
-	run func(ctx context.Context, provider, model string) (*LLMResponse, error),
+	run func(ctx context.Context, candidate FallbackCandidate) (*LLMResponse, error),
 ) (*FallbackResult, error) {
 	if len(candidates) == 0 {
 		return nil, fmt.Errorf("fallback: no candidates configured")
@@ -136,7 +178,7 @@ func (fc *FallbackChain) Execute(
 
 		// Execute the run function.
 		start := time.Now()
-		resp, err := run(ctx, candidate.Provider, candidate.Model)
+		resp, err := run(ctx, candidate)
 		elapsed := time.Since(start)
 
 		if err == nil {
@@ -212,7 +254,7 @@ func (fc *FallbackChain) Execute(
 func (fc *FallbackChain) ExecuteImage(
 	ctx context.Context,
 	candidates []FallbackCandidate,
-	run func(ctx context.Context, provider, model string) (*LLMResponse, error),
+	run func(ctx context.Context, candidate FallbackCandidate) (*LLMResponse, error),
 ) (*FallbackResult, error) {
 	if len(candidates) == 0 {
 		return nil, fmt.Errorf("image fallback: no candidates configured")
@@ -228,7 +270,7 @@ func (fc *FallbackChain) ExecuteImage(
 		}
 
 		start := time.Now()
-		resp, err := run(ctx, candidate.Provider, candidate.Model)
+		resp, err := run(ctx, candidate)
 		elapsed := time.Since(start)
 
 		if err == nil {

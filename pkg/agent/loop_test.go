@@ -342,6 +342,29 @@ func (m *countingMockProvider) GetDefaultModel() string {
 	return "counting-mock-model"
 }
 
+type runtimeRecordingProvider struct {
+	response string
+	calls    int
+}
+
+func (m *runtimeRecordingProvider) Chat(
+	ctx context.Context,
+	messages []providers.Message,
+	tools []providers.ToolDefinition,
+	model string,
+	opts map[string]any,
+) (*providers.LLMResponse, error) {
+	m.calls++
+	return &providers.LLMResponse{
+		Content:   m.response,
+		ToolCalls: []providers.ToolCall{},
+	}, nil
+}
+
+func (m *runtimeRecordingProvider) GetDefaultModel() string {
+	return "runtime-recording-model"
+}
+
 // mockCustomTool is a simple mock tool for registration testing
 type mockCustomTool struct{}
 
@@ -767,6 +790,92 @@ func TestAgentLoop_ContextExhaustionRetry(t *testing.T) {
 	// Without compression: 6 + 1 (new user msg) + 1 (assistant msg) = 8
 	if len(finalHistory) >= 8 {
 		t.Errorf("Expected history to be compressed (len < 8), got %d", len(finalHistory))
+	}
+}
+
+func TestAgentLoop_UsesCandidateModelConfigProviderInFallback(t *testing.T) {
+	tmpDir, err := os.MkdirTemp("", "agent-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	cfg := &config.Config{
+		Agents: config.AgentsConfig{
+			Defaults: config.AgentDefaults{
+				Workspace:         tmpDir,
+				Model:             "qwen-custom",
+				ModelFallbacks:    []string{"openai-fallback"},
+				MaxTokens:         4096,
+				MaxToolIterations: 10,
+			},
+		},
+		ModelList: []config.ModelConfig{
+			{
+				ModelName: "qwen-custom",
+				Model:     "qwen/qwen3.5-plus",
+				APIBase:   "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+				APIKey:    "sk-qwen-test",
+			},
+			{
+				ModelName: "openai-fallback",
+				Model:     "openai/gpt-4o-mini",
+				APIBase:   "https://api.openai.com/v1",
+				APIKey:    "sk-openai-test",
+			},
+		},
+	}
+
+	sharedProvider := &runtimeRecordingProvider{response: "shared-provider"}
+	msgBus := bus.NewMessageBus()
+	al := NewAgentLoop(cfg, msgBus, sharedProvider)
+
+	recordingProvider := &runtimeRecordingProvider{response: "candidate-provider"}
+	seenConfigs := make([]config.ModelConfig, 0, 2)
+	originalFactory := createProviderFromModelConfig
+	createProviderFromModelConfig = func(modelCfg *config.ModelConfig) (providers.LLMProvider, string, error) {
+		if modelCfg == nil {
+			t.Fatal("modelCfg = nil")
+		}
+		seenConfigs = append(seenConfigs, *modelCfg)
+		return recordingProvider, "qwen3.5-plus", nil
+	}
+	defer func() { createProviderFromModelConfig = originalFactory }()
+
+	response, err := al.ProcessDirectWithChannel(
+		context.Background(),
+		"hello",
+		"test-session",
+		"test",
+		"test-chat",
+	)
+	if err != nil {
+		t.Fatalf("ProcessDirectWithChannel() error = %v", err)
+	}
+
+	if response != "candidate-provider" {
+		t.Fatalf("response = %q, want candidate-provider", response)
+	}
+	if sharedProvider.calls != 0 {
+		t.Fatalf("shared provider calls = %d, want 0", sharedProvider.calls)
+	}
+	if recordingProvider.calls != 1 {
+		t.Fatalf("candidate provider calls = %d, want 1", recordingProvider.calls)
+	}
+	if len(seenConfigs) != 1 {
+		t.Fatalf("createProviderFromModelConfig calls = %d, want 1", len(seenConfigs))
+	}
+	if seenConfigs[0].APIBase != "https://dashscope-intl.aliyuncs.com/compatible-mode/v1" {
+		t.Fatalf("api_base = %q, want dashscope-intl", seenConfigs[0].APIBase)
+	}
+	if seenConfigs[0].APIKey != "sk-qwen-test" {
+		t.Fatalf("api_key = %q, want sk-qwen-test", seenConfigs[0].APIKey)
+	}
+	if seenConfigs[0].Workspace != tmpDir {
+		t.Fatalf("workspace = %q, want %q", seenConfigs[0].Workspace, tmpDir)
+	}
+	if seenConfigs[0].Model != "qwen/qwen3.5-plus" {
+		t.Fatalf("model = %q, want qwen/qwen3.5-plus", seenConfigs[0].Model)
 	}
 }
 

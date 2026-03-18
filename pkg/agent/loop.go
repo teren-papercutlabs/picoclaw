@@ -20,6 +20,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/sipeed/picoclaw/pcl/telemetry" // PCL-DOWNSTREAM: cost tracking
 	"github.com/sipeed/picoclaw/pkg/bus"
 	"github.com/sipeed/picoclaw/pkg/channels"
 	"github.com/sipeed/picoclaw/pkg/commands"
@@ -35,7 +36,6 @@ import (
 	"github.com/sipeed/picoclaw/pkg/tools"
 	"github.com/sipeed/picoclaw/pkg/utils"
 	"github.com/sipeed/picoclaw/pkg/voice"
-	"github.com/sipeed/picoclaw/pcl/telemetry" // PCL-DOWNSTREAM: cost tracking
 )
 
 type AgentLoop struct {
@@ -961,24 +961,15 @@ func (al *AgentLoop) runLLMIteration(
 			"temperature":      agent.Temperature,
 			"prompt_cache_key": agent.ID,
 		}
-		// parseThinkingLevel guarantees ThinkingOff for empty/unknown values,
-		// so checking != ThinkingOff is sufficient.
-		if agent.ThinkingLevel != ThinkingOff {
-			if tc, ok := agent.Provider.(providers.ThinkingCapable); ok && tc.SupportsThinking() {
-				llmOpts["thinking_level"] = string(agent.ThinkingLevel)
-			} else {
-				logger.WarnCF("agent", "thinking_level is set but current provider does not support it, ignoring",
-					map[string]any{"agent_id": agent.ID, "thinking_level": string(agent.ThinkingLevel)})
-			}
-		}
 
 		callLLM := func() (*providers.LLMResponse, error) {
 			if len(activeCandidates) > 1 && al.fallback != nil {
 				fbResult, fbErr := al.fallback.Execute(
 					ctx,
 					activeCandidates,
-					func(ctx context.Context, provider, model string) (*providers.LLMResponse, error) {
-						return agent.Provider.Chat(ctx, messages, providerToolDefs, model, llmOpts)
+					func(ctx context.Context, candidate providers.FallbackCandidate) (*providers.LLMResponse, error) {
+						// PCL-DOWNSTREAM: build the provider from the candidate's model_list config instead of reusing the shared agent provider.
+						return chatWithCandidate(ctx, agent, &candidate, messages, providerToolDefs, llmOpts)
 					},
 				)
 				if fbErr != nil {
@@ -994,7 +985,11 @@ func (al *AgentLoop) runLLMIteration(
 				}
 				return fbResult.Response, nil
 			}
-			return agent.Provider.Chat(ctx, messages, providerToolDefs, activeModel, llmOpts)
+			if len(activeCandidates) > 0 {
+				// PCL-DOWNSTREAM: single-candidate calls should also honor model-scoped provider config.
+				return chatWithCandidate(ctx, agent, &activeCandidates[0], messages, providerToolDefs, llmOpts)
+			}
+			return chatWithCandidate(ctx, agent, nil, messages, providerToolDefs, llmOpts)
 		}
 
 		// Retry loop for context/token errors

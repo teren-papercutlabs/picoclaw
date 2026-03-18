@@ -146,7 +146,7 @@ func NewAgentInstance(
 		Primary:   model,
 		Fallbacks: fallbacks,
 	}
-	resolveFromModelList := func(raw string) (string, bool) {
+	resolveFromModelList := func(raw string) (providers.FallbackCandidate, bool) {
 		ensureProtocol := func(model string) string {
 			model = strings.TrimSpace(model)
 			if model == "" {
@@ -157,36 +157,55 @@ func NewAgentInstance(
 			}
 			return "openai/" + model
 		}
+		buildCandidate := func(mc *config.ModelConfig) (providers.FallbackCandidate, bool) {
+			if mc == nil || strings.TrimSpace(mc.Model) == "" {
+				return providers.FallbackCandidate{}, false
+			}
+
+			candidateCfg := *mc // PCL-DOWNSTREAM: keep model-scoped api_base/api_key/workspace on the fallback candidate
+			candidateCfg.Model = ensureProtocol(candidateCfg.Model)
+			if strings.TrimSpace(candidateCfg.Workspace) == "" {
+				candidateCfg.Workspace = workspace
+			}
+
+			providerName, modelID := providers.ExtractProtocol(candidateCfg.Model)
+			return providers.FallbackCandidate{
+				Provider:    providerName,
+				Model:       modelID,
+				ModelConfig: &candidateCfg,
+			}, true
+		}
 
 		raw = strings.TrimSpace(raw)
 		if raw == "" {
-			return "", false
+			return providers.FallbackCandidate{}, false
 		}
 
 		if cfg != nil {
 			if mc, err := cfg.GetModelConfig(raw); err == nil && mc != nil && strings.TrimSpace(mc.Model) != "" {
-				return ensureProtocol(mc.Model), true
+				return buildCandidate(mc)
 			}
 
 			for i := range cfg.ModelList {
-				fullModel := strings.TrimSpace(cfg.ModelList[i].Model)
+				modelCfg := &cfg.ModelList[i]
+				fullModel := strings.TrimSpace(modelCfg.Model)
 				if fullModel == "" {
 					continue
 				}
 				if fullModel == raw {
-					return ensureProtocol(fullModel), true
+					return buildCandidate(modelCfg)
 				}
 				_, modelID := providers.ExtractProtocol(fullModel)
 				if modelID == raw {
-					return ensureProtocol(fullModel), true
+					return buildCandidate(modelCfg)
 				}
 			}
 		}
 
-		return "", false
+		return providers.FallbackCandidate{}, false
 	}
 
-	candidates := providers.ResolveCandidatesWithLookup(modelCfg, defaults.Provider, resolveFromModelList)
+	candidates := providers.ResolveCandidatesWithCandidateLookup(modelCfg, defaults.Provider, resolveFromModelList)
 
 	// Model routing setup: pre-resolve light model candidates at creation time
 	// to avoid repeated model_list lookups on every incoming message.
@@ -194,7 +213,7 @@ func NewAgentInstance(
 	var lightCandidates []providers.FallbackCandidate
 	if rc := defaults.Routing; rc != nil && rc.Enabled && rc.LightModel != "" {
 		lightModelCfg := providers.ModelConfig{Primary: rc.LightModel}
-		resolved := providers.ResolveCandidatesWithLookup(lightModelCfg, defaults.Provider, resolveFromModelList)
+		resolved := providers.ResolveCandidatesWithCandidateLookup(lightModelCfg, defaults.Provider, resolveFromModelList)
 		if len(resolved) > 0 {
 			router = routing.New(routing.RouterConfig{
 				LightModel: rc.LightModel,
