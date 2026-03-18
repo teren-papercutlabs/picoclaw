@@ -34,6 +34,7 @@ import (
 	"github.com/sipeed/picoclaw/pkg/tools"
 	"github.com/sipeed/picoclaw/pkg/utils"
 	"github.com/sipeed/picoclaw/pkg/voice"
+	"github.com/sipeed/picoclaw/pcl/telemetry" // PCL-DOWNSTREAM: cost tracking
 )
 
 type AgentLoop struct {
@@ -48,6 +49,7 @@ type AgentLoop struct {
 	mediaStore     media.MediaStore
 	transcriber    voice.Transcriber
 	cmdRegistry    *commands.Registry
+	costTracker    *telemetry.CostTracker // PCL-DOWNSTREAM: cost tracking
 }
 
 // processOptions configures how a message is processed
@@ -102,6 +104,19 @@ func NewAgentLoop(
 		summarizing: sync.Map{},
 		fallback:    fallbackChain,
 		cmdRegistry: commands.NewRegistry(commands.BuiltinDefinitions()),
+	}
+
+	// PCL-DOWNSTREAM: cost tracking — initialise tracker when enabled.
+	if cfg.CostTracking.Enabled {
+		prices := make(map[string]telemetry.ModelPrice, len(cfg.CostTracking.Prices))
+		for model, p := range cfg.CostTracking.Prices {
+			prices[model] = telemetry.ModelPrice{Input: p.Input, Output: p.Output}
+		}
+		logPath := cfg.CostTracking.LogPath
+		if logPath == "" {
+			logPath = "/home/picoclaw/telemetry/cost.jsonl"
+		}
+		al.costTracker = telemetry.NewCostTracker(logPath, prices)
 	}
 
 	return al
@@ -764,10 +779,13 @@ func (al *AgentLoop) runAgentLoop(
 	agent.Sessions.AddMessage(opts.SessionKey, "user", opts.UserMessage)
 
 	// 3. Run LLM iteration loop
-	finalContent, iteration, err := al.runLLMIteration(ctx, agent, messages, opts)
+	pclTurnStart := time.Now() // PCL-DOWNSTREAM: cost tracking
+	finalContent, iteration, pclUsage, err := al.runLLMIteration(ctx, agent, messages, opts)
 	if err != nil {
 		return "", err
 	}
+	// PCL-DOWNSTREAM: cost tracking — record token usage and cost for this turn.
+	al.pclCostTrack(agent.ID, agent.Model, opts.SessionKey, pclUsage, iteration, time.Since(pclTurnStart).Milliseconds())
 
 	// If last tool had ForUser content and we already sent it, we might not need to send final response
 	// This is controlled by the tool's Silent flag and ForUser content
@@ -870,9 +888,10 @@ func (al *AgentLoop) runLLMIteration(
 	agent *AgentInstance,
 	messages []providers.Message,
 	opts processOptions,
-) (string, int, error) {
+) (string, int, *pclTurnUsage, error) { // PCL-DOWNSTREAM: cost tracking adds *pclTurnUsage return
 	iteration := 0
 	var finalContent string
+	pclUsage := &pclTurnUsage{} // PCL-DOWNSTREAM: cost tracking
 
 	// Determine effective model tier for this conversation turn.
 	// selectCandidates evaluates routing once and the decision is sticky for
@@ -1035,8 +1054,10 @@ func (al *AgentLoop) runLLMIteration(
 					"iteration": iteration,
 					"error":     err.Error(),
 				})
-			return "", iteration, fmt.Errorf("LLM call failed after retries: %w", err)
+			return "", iteration, pclUsage, fmt.Errorf("LLM call failed after retries: %w", err) // PCL-DOWNSTREAM: cost tracking
 		}
+
+		pclAccumulateUsage(pclUsage, response.Usage) // PCL-DOWNSTREAM: cost tracking
 
 		go al.handleReasoning(
 			ctx,
@@ -1067,7 +1088,7 @@ func (al *AgentLoop) runLLMIteration(
 					"iteration":     iteration,
 					"content_chars": len(finalContent),
 				})
-			break
+			break // pclUsage already has accumulated data from pclAccumulateUsage above
 		}
 
 		normalizedToolCalls := make([]providers.ToolCall, 0, len(response.ToolCalls))
@@ -1201,6 +1222,10 @@ func (al *AgentLoop) runLLMIteration(
 			}(i, tc)
 		}
 		wg.Wait()
+		// PCL-DOWNSTREAM: cost tracking — record tool outcomes for this iteration.
+		for _, r := range agentResults {
+			pclAppendToolResult(pclUsage, r.tc.Name, r.result.Err)
+		}
 
 		// Process results in original order (send to user, save to session)
 		for _, r := range agentResults {
@@ -1257,7 +1282,7 @@ func (al *AgentLoop) runLLMIteration(
 		}
 	}
 
-	return finalContent, iteration, nil
+	return finalContent, iteration, pclUsage, nil // PCL-DOWNSTREAM: cost tracking
 }
 
 // selectCandidates returns the model candidates and resolved model name to use

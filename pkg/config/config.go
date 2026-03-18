@@ -48,16 +48,32 @@ func (f *FlexibleStringSlice) UnmarshalJSON(data []byte) error {
 }
 
 type Config struct {
-	Agents    AgentsConfig    `json:"agents"`
-	Bindings  []AgentBinding  `json:"bindings,omitempty"`
-	Session   SessionConfig   `json:"session,omitempty"`
-	Channels  ChannelsConfig  `json:"channels"`
-	Providers ProvidersConfig `json:"providers,omitempty"`
-	ModelList []ModelConfig   `json:"model_list"` // New model-centric provider configuration
-	Gateway   GatewayConfig   `json:"gateway"`
-	Tools     ToolsConfig     `json:"tools"`
-	Heartbeat HeartbeatConfig `json:"heartbeat"`
-	Devices   DevicesConfig   `json:"devices"`
+	Agents       AgentsConfig       `json:"agents"`
+	Bindings     []AgentBinding     `json:"bindings,omitempty"`
+	Session      SessionConfig      `json:"session,omitempty"`
+	Channels     ChannelsConfig     `json:"channels"`
+	Providers    ProvidersConfig    `json:"providers,omitempty"`
+	ModelList    []ModelConfig      `json:"model_list"` // New model-centric provider configuration
+	Gateway      GatewayConfig      `json:"gateway"`
+	Tools        ToolsConfig        `json:"tools"`
+	Heartbeat    HeartbeatConfig    `json:"heartbeat"`
+	Devices      DevicesConfig      `json:"devices"`
+	CostTracking CostTrackingConfig `json:"cost_tracking,omitempty"` // PCL-DOWNSTREAM: cost tracking
+}
+
+// CostTrackingConfig controls the PCL cost telemetry feature.
+// PCL-DOWNSTREAM: cost tracking
+type CostTrackingConfig struct {
+	Enabled bool                       `json:"enabled" env:"PICOCLAW_COST_TRACKING_ENABLED"`
+	LogPath string                     `json:"log_path" env:"PICOCLAW_COST_TRACKING_LOG_PATH"`
+	Prices  map[string]ModelPriceConf  `json:"prices"`
+}
+
+// ModelPriceConf holds per-million-token pricing for a single model.
+// PCL-DOWNSTREAM: cost tracking
+type ModelPriceConf struct {
+	Input  float64 `json:"input"`  // USD per 1M prompt tokens
+	Output float64 `json:"output"` // USD per 1M completion tokens
 }
 
 // MarshalJSON implements custom JSON marshaling for Config
