@@ -489,6 +489,34 @@ func (c *TelegramChannel) handleMessage(ctx context.Context, message *telego.Mes
 		}
 	}
 
+	if message.Video != nil {
+		videoPath := c.downloadFile(ctx, message.Video.FileID, ".mp4")
+		if videoPath != "" {
+			ref := storeMedia(videoPath, "video.mp4")
+			if ref != "" {
+				mediaPaths = append(mediaPaths, ref)
+			}
+			if content != "" {
+				content += "\n"
+			}
+			content += fmt.Sprintf("[video: %s]", videoPath)
+		}
+	}
+
+	if message.VideoNote != nil {
+		vnPath := c.downloadFile(ctx, message.VideoNote.FileID, ".mp4")
+		if vnPath != "" {
+			ref := storeMedia(vnPath, "videonote.mp4")
+			if ref != "" {
+				mediaPaths = append(mediaPaths, ref)
+			}
+			if content != "" {
+				content += "\n"
+			}
+			content += fmt.Sprintf("[video: %s]", vnPath)
+		}
+	}
+
 	if content == "" {
 		content = "[empty message]"
 	}
