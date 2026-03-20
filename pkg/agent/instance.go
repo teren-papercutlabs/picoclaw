@@ -122,6 +122,11 @@ func NewAgentInstance(
 		maxTokens = 8192
 	}
 
+	compactThreshold := defaults.CompactThreshold
+	if compactThreshold == 0 {
+		compactThreshold = 131072
+	}
+
 	temperature := 0.7
 	if defaults.Temperature != nil {
 		temperature = *defaults.Temperature
@@ -238,7 +243,7 @@ func NewAgentInstance(
 		MaxTokens:                 maxTokens,
 		Temperature:               temperature,
 		ThinkingLevel:             thinkingLevel,
-		ContextWindow:             maxTokens,
+		ContextWindow:             compactThreshold,
 		SummarizeMessageThreshold: summarizeMessageThreshold,
 		SummarizeTokenPercent:     summarizeTokenPercent,
 		Provider:                  provider,

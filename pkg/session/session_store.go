@@ -27,6 +27,9 @@ type SessionStore interface {
 	TruncateHistory(key string, keepLast int)
 	// Save persists any pending state to durable storage.
 	Save(key string) error
+	// GetFullHistory returns ALL messages including those before the
+	// compaction point. Use for transcript access and history review.
+	GetFullHistory(key string) []providers.Message
 	// Close releases resources held by the store.
 	Close() error
 }

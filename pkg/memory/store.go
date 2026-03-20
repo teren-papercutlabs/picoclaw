@@ -33,9 +33,16 @@ type Store interface {
 	// SetHistory replaces all messages in a session with the provided history.
 	SetHistory(ctx context.Context, sessionKey string, history []providers.Message) error
 
-	// Compact reclaims storage by physically removing logically truncated
-	// data. Backends that do not accumulate dead data may return nil.
+	// Compact is called after TruncateHistory to finalize compaction.
+	// Implementations may use this as a no-op if messages are preserved
+	// on disk (non-destructive compaction).
 	Compact(ctx context.Context, sessionKey string) error
+
+	// GetFullHistory returns ALL messages for a session including those
+	// logically truncated by TruncateHistory. Use for transcript access,
+	// audit, and history review. Returns an empty slice if session does
+	// not exist.
+	GetFullHistory(ctx context.Context, sessionKey string) ([]providers.Message, error)
 
 	// Close releases any resources held by the store.
 	Close() error

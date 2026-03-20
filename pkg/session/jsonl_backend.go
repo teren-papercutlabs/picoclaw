@@ -69,10 +69,21 @@ func (b *JSONLBackend) TruncateHistory(key string, keepLast int) {
 }
 
 // Save persists session state. Since the JSONL store fsyncs every write
-// immediately, the data is already durable. Save runs compaction to reclaim
-// space from logically truncated messages (no-op when there are none).
+// immediately, the data is already durable. Compact is a no-op — messages
+// are never physically deleted from the JSONL file.
 func (b *JSONLBackend) Save(key string) error {
 	return b.store.Compact(context.Background(), key)
+}
+
+// GetFullHistory returns ALL messages including those before the compaction
+// point. Use for transcript access and history review.
+func (b *JSONLBackend) GetFullHistory(key string) []providers.Message {
+	msgs, err := b.store.GetFullHistory(context.Background(), key)
+	if err != nil {
+		log.Printf("session: get full history: %v", err)
+		return []providers.Message{}
+	}
+	return msgs
 }
 
 // Close releases resources held by the underlying store.

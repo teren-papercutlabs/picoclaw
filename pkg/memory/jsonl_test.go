@@ -423,7 +423,7 @@ func TestColonInKey(t *testing.T) {
 	}
 }
 
-func TestCompact_RemovesSkippedMessages(t *testing.T) {
+func TestCompact_PreservesAllMessages(t *testing.T) {
 	store := newTestStore(t)
 	ctx := context.Background()
 
@@ -439,31 +439,22 @@ func TestCompact_RemovesSkippedMessages(t *testing.T) {
 		t.Fatalf("TruncateHistory: %v", err)
 	}
 
-	// Before compact: file still has 10 lines.
-	allOnDisk, err := readMessages(store.jsonlPath("compact"), 0)
-	if err != nil {
-		t.Fatalf("readMessages: %v", err)
-	}
-	if len(allOnDisk) != 10 {
-		t.Fatalf("before compact: expected 10 on disk, got %d", len(allOnDisk))
-	}
-
-	// Compact.
+	// Compact is now a no-op — file should still have all 10 lines.
 	err = store.Compact(ctx, "compact")
 	if err != nil {
 		t.Fatalf("Compact: %v", err)
 	}
 
-	// After compact: file should have only 3 lines.
-	allOnDisk, err = readMessages(store.jsonlPath("compact"), 0)
+	// All 10 messages preserved on disk.
+	allOnDisk, err := readMessages(store.jsonlPath("compact"), 0)
 	if err != nil {
 		t.Fatalf("readMessages: %v", err)
 	}
-	if len(allOnDisk) != 3 {
-		t.Fatalf("after compact: expected 3 on disk, got %d", len(allOnDisk))
+	if len(allOnDisk) != 10 {
+		t.Fatalf("after compact: expected 10 on disk (non-destructive), got %d", len(allOnDisk))
 	}
 
-	// GetHistory should still return the same 3 messages.
+	// GetHistory still returns only the active 3 messages.
 	history, err := store.GetHistory(ctx, "compact")
 	if err != nil {
 		t.Fatalf("GetHistory: %v", err)
@@ -473,6 +464,18 @@ func TestCompact_RemovesSkippedMessages(t *testing.T) {
 	}
 	if history[0].Content != "h" || history[2].Content != "j" {
 		t.Errorf("wrong content: %+v", history)
+	}
+
+	// GetFullHistory returns ALL 10 messages.
+	full, err := store.GetFullHistory(ctx, "compact")
+	if err != nil {
+		t.Fatalf("GetFullHistory: %v", err)
+	}
+	if len(full) != 10 {
+		t.Fatalf("expected 10 full history, got %d", len(full))
+	}
+	if full[0].Content != "a" || full[9].Content != "j" {
+		t.Errorf("wrong full content: first=%q last=%q", full[0].Content, full[9].Content)
 	}
 }
 
