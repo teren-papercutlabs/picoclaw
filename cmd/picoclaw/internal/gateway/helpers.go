@@ -23,6 +23,7 @@ import (
 	_ "github.com/sipeed/picoclaw/pkg/channels/pico"
 	_ "github.com/sipeed/picoclaw/pkg/channels/qq"
 	_ "github.com/sipeed/picoclaw/pkg/channels/slack"
+	_ "github.com/sipeed/picoclaw/pkg/channels/http"
 	_ "github.com/sipeed/picoclaw/pkg/channels/telegram"
 	_ "github.com/sipeed/picoclaw/pkg/channels/wecom"
 	_ "github.com/sipeed/picoclaw/pkg/channels/whatsapp"
@@ -135,6 +136,9 @@ func gatewayCmd(debug bool) error {
 	// Inject channel manager and media store into agent loop
 	agentLoop.SetChannelManager(channelManager)
 	agentLoop.SetMediaStore(mediaStore)
+
+	// Inject agent executor into channels that need it (e.g. HTTP webhook channel)
+	channelManager.SetAgentExecutor(agentLoop)
 
 	// Wire up voice transcription if a supported provider is configured.
 	if transcriber := voice.DetectTranscriber(cfg); transcriber != nil {

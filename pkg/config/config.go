@@ -249,6 +249,14 @@ type ChannelsConfig struct {
 	WeComAIBot WeComAIBotConfig `json:"wecom_aibot"`
 	Pico       PicoConfig       `json:"pico"`
 	IRC        IRCConfig        `json:"irc"`
+	HTTP       HTTPChannelConfig `json:"http"`
+}
+
+// HTTPChannelConfig configures the HTTP webhook channel.
+// When enabled, picoclaw exposes POST /webhook/http for inbound messages
+// and GET /webhook/http/status/<request_id> for polling results.
+type HTTPChannelConfig struct {
+	Enabled bool `json:"enabled" env:"PICOCLAW_CHANNELS_HTTP_ENABLED"`
 }
 
 // GroupTriggerConfig controls when the bot responds in group chats.

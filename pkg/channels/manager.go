@@ -25,6 +25,12 @@ import (
 	"github.com/sipeed/picoclaw/pkg/media"
 )
 
+// AgentExecutor is the interface for channels that need to invoke the agent loop directly.
+// AgentLoop satisfies this via ProcessDirectWithChannel.
+type AgentExecutor interface {
+	ProcessDirectWithChannel(ctx context.Context, content, sessionKey, channel, chatID string) (string, error)
+}
+
 const (
 	defaultChannelQueueSize = 16
 	defaultRateLimit        = 10 // default 10 msg/s
@@ -80,6 +86,7 @@ type Manager struct {
 	bus           *bus.MessageBus
 	config        *config.Config
 	mediaStore    media.MediaStore
+	agentExec     AgentExecutor // optional; injected via SetAgentExecutor
 	dispatchTask  *asyncTask
 	mux           *http.ServeMux
 	httpServer    *http.Server
@@ -197,6 +204,14 @@ func (m *Manager) initChannel(name, displayName string) {
 		if setter, ok := ch.(interface{ SetOwner(ch Channel) }); ok {
 			setter.SetOwner(ch)
 		}
+		// Inject AgentExecutor if channel supports it and one is already set on the manager
+		if m.agentExec != nil {
+			if setter, ok := ch.(interface {
+				SetExecutor(exec AgentExecutor)
+			}); ok {
+				setter.SetExecutor(m.agentExec)
+			}
+		}
 		m.channels[name] = ch
 		logger.InfoCF("channels", "Channel enabled successfully", map[string]any{
 			"channel": displayName,
@@ -270,6 +285,10 @@ func (m *Manager) initChannels() error {
 
 	if m.config.Channels.IRC.Enabled && m.config.Channels.IRC.Server != "" {
 		m.initChannel("irc", "IRC")
+	}
+
+	if m.config.Channels.HTTP.Enabled {
+		m.initChannel("http", "HTTP Webhook")
 	}
 
 	logger.InfoCF("channels", "Channel initialization completed", map[string]any{
@@ -749,6 +768,22 @@ func (m *Manager) runTTLJanitor(ctx context.Context) {
 				}
 				return true
 			})
+		}
+	}
+}
+
+// SetAgentExecutor injects an agent executor into channels that require it
+// (e.g. the HTTP webhook channel). Must be called before StartAll.
+// If channels have already been initialized, the executor is injected immediately.
+func (m *Manager) SetAgentExecutor(exec AgentExecutor) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.agentExec = exec
+	for _, ch := range m.channels {
+		if setter, ok := ch.(interface {
+			SetExecutor(exec AgentExecutor)
+		}); ok {
+			setter.SetExecutor(exec)
 		}
 	}
 }
