@@ -67,7 +67,7 @@ type processOptions struct {
 }
 
 const (
-	defaultResponse           = "I've completed processing but have no response to give. Increase `max_tool_iterations` in config.json."
+	defaultResponse           = "The model returned an empty response. This may indicate a provider error, token limit, or unsupported request."
 	sessionKeyAgentPrefix     = "agent:"
 	metadataKeyAccountID      = "account_id"
 	metadataKeyGuildID        = "guild_id"
