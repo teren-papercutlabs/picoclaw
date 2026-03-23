@@ -326,7 +326,7 @@ func (t *ExecTool) guardCommand(command, cwd string) string {
 		}
 	}
 
-	if t.restrictToWorkspace {
+	if t.restrictToWorkspace && !explicitlyAllowed {
 		if strings.Contains(cmd, "..\\") || strings.Contains(cmd, "../") {
 			return "Command blocked by safety guard (path traversal detected)"
 		}
@@ -339,6 +339,11 @@ func (t *ExecTool) guardCommand(command, cwd string) string {
 		matches := absolutePathPattern.FindAllString(cmd, -1)
 
 		for _, raw := range matches {
+			// Skip URL-like matches (e.g., //www.example.com from http://...)
+			if strings.HasPrefix(raw, "//") {
+				continue
+			}
+
 			p, err := filepath.Abs(raw)
 			if err != nil {
 				continue
