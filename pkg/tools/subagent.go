@@ -21,6 +21,10 @@ type SubagentTask struct {
 	Created       int64
 }
 
+// PCL-DOWNSTREAM: ModelResolver resolves the provider and model for a target agent ID.
+// Returns (provider, model, true) if the agent has its own model config, or (nil, "", false) to use defaults.
+type ModelResolver func(agentID string) (providers.LLMProvider, string, bool)
+
 type SubagentManager struct {
 	tasks          map[string]*SubagentTask
 	mu             sync.RWMutex
@@ -34,6 +38,7 @@ type SubagentManager struct {
 	hasMaxTokens   bool
 	hasTemperature bool
 	nextID         int
+	modelResolver  ModelResolver // PCL-DOWNSTREAM: resolve per-agent model/provider
 }
 
 func NewSubagentManager(
@@ -49,6 +54,13 @@ func NewSubagentManager(
 		maxIterations: 10,
 		nextID:        1,
 	}
+}
+
+// PCL-DOWNSTREAM: SetModelResolver sets the function used to resolve per-agent model/provider.
+func (sm *SubagentManager) SetModelResolver(resolver ModelResolver) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	sm.modelResolver = resolver
 }
 
 // SetLLMOptions sets max tokens and temperature for subagent LLM calls.
@@ -147,6 +159,7 @@ After completing the task, provide a clear summary of what was done.`
 	temperature := sm.temperature
 	hasMaxTokens := sm.hasMaxTokens
 	hasTemperature := sm.hasTemperature
+	resolver := sm.modelResolver // PCL-DOWNSTREAM
 	sm.mu.RUnlock()
 
 	var llmOptions map[string]any
@@ -160,9 +173,19 @@ After completing the task, provide a clear summary of what was done.`
 		}
 	}
 
+	// PCL-DOWNSTREAM: resolve the target agent's model/provider if available
+	taskProvider := sm.provider
+	taskModel := sm.defaultModel
+	if task.AgentID != "" && resolver != nil {
+		if p, m, ok := resolver(task.AgentID); ok {
+			taskProvider = p
+			taskModel = m
+		}
+	}
+
 	loopResult, err := RunToolLoop(ctx, ToolLoopConfig{
-		Provider:      sm.provider,
-		Model:         sm.defaultModel,
+		Provider:      taskProvider,
+		Model:         taskModel,
 		Tools:         tools,
 		MaxIterations: maxIter,
 		LLMOptions:    llmOptions,

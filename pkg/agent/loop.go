@@ -256,6 +256,14 @@ func registerSharedTools(
 			if cfg.Tools.IsToolEnabled("subagent") {
 				subagentManager := tools.NewSubagentManager(provider, agent.Model, agent.Workspace)
 				subagentManager.SetLLMOptions(agent.MaxTokens, agent.Temperature)
+				// PCL-DOWNSTREAM: resolve per-subagent model/provider from the agent registry
+				subagentManager.SetModelResolver(func(targetAgentID string) (providers.LLMProvider, string, bool) {
+					targetAgent, ok := registry.GetAgent(targetAgentID)
+					if !ok || targetAgent.Provider == nil {
+						return nil, "", false
+					}
+					return targetAgent.Provider, targetAgent.Model, true
+				})
 				spawnTool := tools.NewSpawnTool(subagentManager)
 				currentAgentID := agentID
 				spawnTool.SetAllowlistChecker(func(targetAgentID string) bool {
