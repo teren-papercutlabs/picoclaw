@@ -823,7 +823,9 @@ func (al *AgentLoop) runAgentLoop(
 	// This is controlled by the tool's Silent flag and ForUser content
 
 	// 4. Handle empty response
-	if finalContent == "" {
+	// If tool calls were made (iteration > 1), empty response is intentional silence.
+	// Only fall back to defaultResponse when the first LLM call returned nothing (no tools, no text).
+	if finalContent == "" && iteration <= 1 {
 		finalContent = opts.DefaultResponse
 	}
 
