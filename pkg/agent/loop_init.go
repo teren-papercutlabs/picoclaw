@@ -255,6 +255,19 @@ func registerSharedTools(
 			subagentManager := tools.NewSubagentManager(provider, agent.Model, agent.Workspace)
 			subagentManager.SetLLMOptions(agent.MaxTokens, agent.Temperature)
 
+			// PCL-DOWNSTREAM: resolve per-subagent model/provider from the agent registry,
+			// so the legacy RunToolLoop fallback path runs on the target agent's model
+			// rather than the parent's. The primary spawner path resolves the target
+			// agent's Model into cfg.Model above (step "4. Resolve Model"); this fallback
+			// hook keeps the non-spawner path consistent.
+			subagentManager.SetModelResolver(func(targetAgentID string) (providers.LLMProvider, string, bool) {
+				targetAgent, ok := registry.GetAgent(targetAgentID)
+				if !ok || targetAgent.Provider == nil {
+					return nil, "", false
+				}
+				return targetAgent.Provider, targetAgent.Model, true
+			})
+
 			// Inject a media resolver so the legacy RunToolLoop fallback path can
 			// resolve media:// refs in the same way the main AgentLoop does.
 			// This keeps subagent vision support working even when the optimized

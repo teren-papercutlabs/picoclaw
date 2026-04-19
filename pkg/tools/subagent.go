@@ -53,6 +53,13 @@ type SpawnSubTurnFunc func(
 	hasMaxTokens, hasTemperature bool,
 ) (*ToolResult, error)
 
+// PCL-DOWNSTREAM: ModelResolver resolves the provider and model for a target agent ID.
+// Returns (provider, model, true) if the agent has its own model config, or
+// (nil, "", false) to use defaults. Used by the legacy RunToolLoop fallback
+// path so subagents dispatched to named agents run on that agent's configured
+// model rather than the parent agent's model.
+type ModelResolver func(agentID string) (providers.LLMProvider, string, bool)
+
 type SubagentManager struct {
 	tasks          map[string]*SubagentTask
 	mu             sync.RWMutex
@@ -67,6 +74,7 @@ type SubagentManager struct {
 	hasTemperature bool
 	nextID         int
 	spawner        SpawnSubTurnFunc
+	modelResolver  ModelResolver // PCL-DOWNSTREAM: resolve per-agent model/provider
 
 	// mediaResolver resolves media:// refs in tool-loop messages before
 	// each LLM call in the legacy RunToolLoop fallback path.
@@ -94,6 +102,14 @@ func (sm *SubagentManager) SetSpawner(spawner SpawnSubTurnFunc) {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	sm.spawner = spawner
+}
+
+// PCL-DOWNSTREAM: SetModelResolver sets the function used by the legacy
+// RunToolLoop fallback path to resolve per-agent model/provider.
+func (sm *SubagentManager) SetModelResolver(resolver ModelResolver) {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	sm.modelResolver = resolver
 }
 
 // SetMediaResolver injects a message preprocessor that resolves media:// refs
@@ -195,6 +211,7 @@ func (sm *SubagentManager) runTask(
 	hasMaxTokens := sm.hasMaxTokens
 	hasTemperature := sm.hasTemperature
 	mediaResolver := sm.mediaResolver
+	resolver := sm.modelResolver // PCL-DOWNSTREAM
 	sm.mu.RUnlock()
 
 	var result *ToolResult
@@ -234,10 +251,21 @@ After completing the task, provide a clear summary of what was done.`
 			}
 		}
 
+		// PCL-DOWNSTREAM: resolve the target agent's model/provider if a resolver is
+		// registered and the task was dispatched to a named agent.
+		taskProvider := sm.provider
+		taskModel := sm.defaultModel
+		if task.AgentID != "" && resolver != nil {
+			if p, m, ok := resolver(task.AgentID); ok {
+				taskProvider = p
+				taskModel = m
+			}
+		}
+
 		var loopResult *ToolLoopResult
 		loopResult, err = RunToolLoop(ctx, ToolLoopConfig{
-			Provider:      sm.provider,
-			Model:         sm.defaultModel,
+			Provider:      taskProvider,
+			Model:         taskModel,
 			Tools:         tools,
 			MaxIterations: maxIter,
 			LLMOptions:    llmOptions,
