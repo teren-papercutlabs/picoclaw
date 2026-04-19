@@ -27,6 +27,10 @@ type SessionStore interface {
 	TruncateHistory(key string, keepLast int)
 	// Save persists any pending state to durable storage.
 	Save(key string) error
+	// GetFullHistory returns ALL messages including those before the
+	// compaction point. Use for transcript access and history review.
+	// PCL-DOWNSTREAM: non-destructive compaction.
+	GetFullHistory(key string) []providers.Message
 	// ListSessions returns all known session keys.
 	ListSessions() []string
 	// Close releases resources held by the store.

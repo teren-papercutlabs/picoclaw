@@ -605,6 +605,7 @@ type ephemeralSessionStoreIface interface {
 	AddMessage(sessionKey, role, content string)
 	AddFullMessage(sessionKey string, msg providers.Message)
 	GetHistory(key string) []providers.Message
+	GetFullHistory(key string) []providers.Message
 	GetSummary(key string) string
 	SetSummary(key, summary string)
 	SetHistory(key string, history []providers.Message)
@@ -629,6 +630,17 @@ func (e *ephemeralSessionStore) AddFullMessage(_ string, msg providers.Message) 
 }
 
 func (e *ephemeralSessionStore) GetHistory(_ string) []providers.Message {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	out := make([]providers.Message, len(e.history))
+	copy(out, e.history)
+	return out
+}
+
+// GetFullHistory returns the same as GetHistory for the ephemeral store —
+// this backend does not preserve messages after TruncateHistory.
+// PCL-DOWNSTREAM: non-destructive compaction.
+func (e *ephemeralSessionStore) GetFullHistory(_ string) []providers.Message {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	out := make([]providers.Message, len(e.history))

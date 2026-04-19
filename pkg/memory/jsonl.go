@@ -712,49 +712,42 @@ func (s *JSONLStore) SetHistory(
 	return s.rewriteJSONL(sessionKey, history)
 }
 
-// Compact physically rewrites the JSONL file, dropping all logically
-// skipped lines. This reclaims disk space that accumulates after
-// repeated TruncateHistory calls.
+// Compact is a no-op. The JSONL file is never physically rewritten during
+// compaction — all original messages are preserved on disk permanently.
+// TruncateHistory sets a skip offset in the metadata file, and GetHistory
+// uses that offset to return only the active context window. GetFullHistory
+// returns every message regardless of the skip offset, providing full
+// transcript access even after compaction.
 //
-// It is safe to call at any time; if there is nothing to compact
-// (skip == 0) the method returns immediately.
+// PCL-DOWNSTREAM: non-destructive compaction — the previous implementation
+// physically rewrote the JSONL file dropping skipped lines. That reclaimed
+// disk space but discarded the pre-compaction transcript permanently, which
+// is unacceptable for audit/debug/conversation-review use cases.
 func (s *JSONLStore) Compact(
 	_ context.Context, sessionKey string,
 ) error {
+	return nil
+}
+
+// GetFullHistory returns ALL messages for a session, including those
+// logically truncated by TruncateHistory. This provides full transcript
+// access for audit, debugging, and history review.
+// PCL-DOWNSTREAM: non-destructive compaction.
+func (s *JSONLStore) GetFullHistory(
+	_ context.Context, sessionKey string,
+) ([]providers.Message, error) {
 	l := s.sessionLock(sessionKey)
 	l.Lock()
 	defer l.Unlock()
 
-	meta, err := s.readMeta(sessionKey)
+	// Read all messages with skip=0 to include everything, regardless of
+	// any TruncateHistory skip offset in the metadata.
+	msgs, err := readMessages(s.jsonlPath(sessionKey), 0)
 	if err != nil {
-		return err
-	}
-	if meta.Skip == 0 {
-		return nil
+		return nil, err
 	}
 
-	// Read only the active messages, skipping truncated lines
-	// without unmarshaling them.
-	active, err := readMessages(s.jsonlPath(sessionKey), meta.Skip)
-	if err != nil {
-		return err
-	}
-
-	// Write meta BEFORE rewriting the JSONL file. If the process
-	// crashes between the two writes, meta has Skip=0 and the old
-	// (uncompacted) file is still intact, so GetHistory reads from
-	// line 1 — returning previously-truncated messages rather than
-	// losing data. The next Compact or TruncateHistory corrects this.
-	meta.Skip = 0
-	meta.Count = len(active)
-	meta.UpdatedAt = time.Now()
-
-	err = s.writeMeta(sessionKey, meta)
-	if err != nil {
-		return err
-	}
-
-	return s.rewriteJSONL(sessionKey, active)
+	return msgs, nil
 }
 
 // rewriteJSONL atomically replaces the JSONL file with the given messages

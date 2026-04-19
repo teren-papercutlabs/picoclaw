@@ -100,6 +100,15 @@ func (sm *SessionManager) GetHistory(key string) []providers.Message {
 	return history
 }
 
+// GetFullHistory returns all messages in the session. For SessionManager,
+// this is identical to GetHistory since the legacy in-memory backend does
+// not retain messages after truncation — only the JSONL backend implements
+// non-destructive compaction.
+// PCL-DOWNSTREAM: non-destructive compaction.
+func (sm *SessionManager) GetFullHistory(key string) []providers.Message {
+	return sm.GetHistory(key)
+}
+
 func (sm *SessionManager) GetSummary(key string) string {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
