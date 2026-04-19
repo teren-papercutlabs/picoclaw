@@ -92,6 +92,7 @@ picoclaw --no-color status`,
 		model.NewModelCommand(),
 		updater.NewUpdateCommand("picoclaw"),
 		version.NewVersionCommand(),
+		NewConfigCommand(), // PCL-DOWNSTREAM: atomic config get/set/list commands that preserve unknown fields
 	)
 
 	return cmd
