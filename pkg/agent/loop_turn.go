@@ -1477,11 +1477,20 @@ turnLoop:
 	}
 
 	if finalContent == "" {
+		// Preserve the tool-limit signal — that's an actionable "I ran out of iterations" message
+		// the operator needs to see. Otherwise, an empty response is intentional silence: the agent
+		// chose not to speak this turn (noise messages, ingest-only flows, etc.). Publishing
+		// DefaultResponse here leaks internal-error-shaped text into the user channel on legit-silent
+		// turns and then poisons session history for subsequent messages.
+		//
+		// Provider errors (caught exception, HTTP 5xx, timeout) belong upstream in the provider call
+		// path — not conflated with empty content here.
+		//
+		// (edna/pcl: shipped 2026-04-19 for WB 5411877b.)
 		if ts.currentIteration() >= ts.agent.MaxIterations && ts.agent.MaxIterations > 0 {
 			finalContent = toolLimitResponse
-		} else {
-			finalContent = ts.opts.DefaultResponse
 		}
+		_ = ts.opts.DefaultResponse // intentionally unused; retained on struct for downstream compat.
 	}
 
 	ts.setPhase(TurnPhaseFinalizing)
