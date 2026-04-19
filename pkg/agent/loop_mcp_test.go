@@ -11,8 +11,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/mcp"
+	"github.com/teren-papercutlabs/pclaw/pkg/config"
+	"github.com/teren-papercutlabs/pclaw/pkg/mcp"
 )
 
 func boolPtr(b bool) *bool { return &b }

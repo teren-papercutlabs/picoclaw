@@ -8,17 +8,17 @@ import (
 	"os"
 	"time"
 
-	"github.com/sipeed/picoclaw/pcl/telemetry" // PCL-DOWNSTREAM: cost tracking
-	"github.com/sipeed/picoclaw/pkg/audio/tts"
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/channels"
-	"github.com/sipeed/picoclaw/pkg/commands"
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/logger"
-	"github.com/sipeed/picoclaw/pkg/providers"
-	"github.com/sipeed/picoclaw/pkg/skills"
-	"github.com/sipeed/picoclaw/pkg/state"
-	"github.com/sipeed/picoclaw/pkg/tools"
+	"github.com/teren-papercutlabs/pclaw/pcl/telemetry" // PCL-DOWNSTREAM: cost tracking
+	"github.com/teren-papercutlabs/pclaw/pkg/audio/tts"
+	"github.com/teren-papercutlabs/pclaw/pkg/bus"
+	"github.com/teren-papercutlabs/pclaw/pkg/channels"
+	"github.com/teren-papercutlabs/pclaw/pkg/commands"
+	"github.com/teren-papercutlabs/pclaw/pkg/config"
+	"github.com/teren-papercutlabs/pclaw/pkg/logger"
+	"github.com/teren-papercutlabs/pclaw/pkg/providers"
+	"github.com/teren-papercutlabs/pclaw/pkg/skills"
+	"github.com/teren-papercutlabs/pclaw/pkg/state"
+	"github.com/teren-papercutlabs/pclaw/pkg/tools"
 )
 
 func NewAgentLoop(

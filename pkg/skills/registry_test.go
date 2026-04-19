@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/utils"
+	"github.com/teren-papercutlabs/pclaw/pkg/config"
+	"github.com/teren-papercutlabs/pclaw/pkg/utils"
 )
 
 // mockRegistry is a test double implementing SkillRegistry.

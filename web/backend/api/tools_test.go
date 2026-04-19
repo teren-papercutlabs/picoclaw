@@ -8,8 +8,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/sipeed/picoclaw/pkg/config"
-	picotools "github.com/sipeed/picoclaw/pkg/tools"
+	"github.com/teren-papercutlabs/pclaw/pkg/config"
+	picotools "github.com/teren-papercutlabs/pclaw/pkg/tools"
 )
 
 func TestHandleListTools(t *testing.T) {

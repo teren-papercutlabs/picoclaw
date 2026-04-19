@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/logger"
-	"github.com/sipeed/picoclaw/pkg/tools"
+	"github.com/teren-papercutlabs/pclaw/pkg/bus"
+	"github.com/teren-papercutlabs/pclaw/pkg/logger"
+	"github.com/teren-papercutlabs/pclaw/pkg/tools"
 )
 
 func (al *AgentLoop) maybePublishError(ctx context.Context, channel, chatID, sessionKey string, err error) bool {

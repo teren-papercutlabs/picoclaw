@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/providers"
-	"github.com/sipeed/picoclaw/pkg/providers/protocoltypes"
-	"github.com/sipeed/picoclaw/pkg/seahorse"
+	"github.com/teren-papercutlabs/pclaw/pkg/bus"
+	"github.com/teren-papercutlabs/pclaw/pkg/config"
+	"github.com/teren-papercutlabs/pclaw/pkg/providers"
+	"github.com/teren-papercutlabs/pclaw/pkg/providers/protocoltypes"
+	"github.com/teren-papercutlabs/pclaw/pkg/seahorse"
 )
 
 // seahorseTestProvider implements providers.LLMProvider for seahorse tests.

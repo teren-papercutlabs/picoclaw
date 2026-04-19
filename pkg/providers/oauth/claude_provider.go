@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sipeed/picoclaw/pkg/auth"
-	anthropicprovider "github.com/sipeed/picoclaw/pkg/providers/anthropic"
+	"github.com/teren-papercutlabs/pclaw/pkg/auth"
+	anthropicprovider "github.com/teren-papercutlabs/pclaw/pkg/providers/anthropic"
 )
 
 type ClaudeProvider struct {

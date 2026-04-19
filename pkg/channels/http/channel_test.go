@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/teren-papercutlabs/pclaw/pkg/bus"
+	"github.com/teren-papercutlabs/pclaw/pkg/config"
 )
 
 // mockExecutor is a test double for channels.AgentExecutor.

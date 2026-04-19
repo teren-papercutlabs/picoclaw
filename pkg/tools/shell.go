@@ -18,9 +18,9 @@ import (
 
 	"github.com/creack/pty"
 
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/constants"
-	"github.com/sipeed/picoclaw/pkg/isolation"
+	"github.com/teren-papercutlabs/pclaw/pkg/config"
+	"github.com/teren-papercutlabs/pclaw/pkg/constants"
+	"github.com/teren-papercutlabs/pclaw/pkg/isolation"
 )
 
 var (

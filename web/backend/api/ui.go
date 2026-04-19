@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/sipeed/picoclaw/pkg/tools"
+	"github.com/teren-papercutlabs/pclaw/pkg/tools"
 )
 
 type uiLanguageRequest struct {

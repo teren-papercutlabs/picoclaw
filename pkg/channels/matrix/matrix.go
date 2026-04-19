@@ -25,12 +25,12 @@ import (
 	"maunium.net/go/mautrix/id"
 	_ "modernc.org/sqlite"
 
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/channels"
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/identity"
-	"github.com/sipeed/picoclaw/pkg/logger"
-	"github.com/sipeed/picoclaw/pkg/media"
+	"github.com/teren-papercutlabs/pclaw/pkg/bus"
+	"github.com/teren-papercutlabs/pclaw/pkg/channels"
+	"github.com/teren-papercutlabs/pclaw/pkg/config"
+	"github.com/teren-papercutlabs/pclaw/pkg/identity"
+	"github.com/teren-papercutlabs/pclaw/pkg/logger"
+	"github.com/teren-papercutlabs/pclaw/pkg/media"
 )
 
 const (

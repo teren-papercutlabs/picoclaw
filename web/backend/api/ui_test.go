@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sipeed/picoclaw/pkg/tools"
+	"github.com/teren-papercutlabs/pclaw/pkg/tools"
 )
 
 func TestHandleSetUILanguage(t *testing.T) {

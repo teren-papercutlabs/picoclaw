@@ -26,15 +26,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/logger"
-	"github.com/sipeed/picoclaw/pkg/netbind"
-	"github.com/sipeed/picoclaw/pkg/tools"
-	"github.com/sipeed/picoclaw/web/backend/api"
-	"github.com/sipeed/picoclaw/web/backend/dashboardauth"
-	"github.com/sipeed/picoclaw/web/backend/launcherconfig"
-	"github.com/sipeed/picoclaw/web/backend/middleware"
-	"github.com/sipeed/picoclaw/web/backend/utils"
+	"github.com/teren-papercutlabs/pclaw/pkg/config"
+	"github.com/teren-papercutlabs/pclaw/pkg/logger"
+	"github.com/teren-papercutlabs/pclaw/pkg/netbind"
+	"github.com/teren-papercutlabs/pclaw/pkg/tools"
+	"github.com/teren-papercutlabs/pclaw/web/backend/api"
+	"github.com/teren-papercutlabs/pclaw/web/backend/dashboardauth"
+	"github.com/teren-papercutlabs/pclaw/web/backend/launcherconfig"
+	"github.com/teren-papercutlabs/pclaw/web/backend/middleware"
+	"github.com/teren-papercutlabs/pclaw/web/backend/utils"
 )
 
 const (

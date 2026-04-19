@@ -7,8 +7,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/sipeed/picoclaw/pkg/config"
-	picotools "github.com/sipeed/picoclaw/pkg/tools"
+	"github.com/teren-papercutlabs/pclaw/pkg/config"
+	picotools "github.com/teren-papercutlabs/pclaw/pkg/tools"
 )
 
 type toolCatalogEntry struct {

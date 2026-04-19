@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/fileutil"
-	"github.com/sipeed/picoclaw/pkg/providers"
+	"github.com/teren-papercutlabs/pclaw/pkg/fileutil"
+	"github.com/teren-papercutlabs/pclaw/pkg/providers"
 )
 
 const (

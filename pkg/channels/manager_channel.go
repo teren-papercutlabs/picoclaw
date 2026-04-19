@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/teren-papercutlabs/pclaw/pkg/config"
 )
 
 func toChannelHashes(cfg *config.Config) map[string]string {

@@ -10,13 +10,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/constants"
-	"github.com/sipeed/picoclaw/pkg/logger"
-	"github.com/sipeed/picoclaw/pkg/providers"
-	"github.com/sipeed/picoclaw/pkg/tools"
-	"github.com/sipeed/picoclaw/pkg/utils"
+	"github.com/teren-papercutlabs/pclaw/pkg/bus"
+	"github.com/teren-papercutlabs/pclaw/pkg/config"
+	"github.com/teren-papercutlabs/pclaw/pkg/constants"
+	"github.com/teren-papercutlabs/pclaw/pkg/logger"
+	"github.com/teren-papercutlabs/pclaw/pkg/providers"
+	"github.com/teren-papercutlabs/pclaw/pkg/tools"
+	"github.com/teren-papercutlabs/pclaw/pkg/utils"
 )
 
 func (al *AgentLoop) runTurn(ctx context.Context, ts *turnState) (turnResult, error) {

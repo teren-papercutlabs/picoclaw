@@ -12,13 +12,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/config"
-	"github.com/sipeed/picoclaw/pkg/media"
-	"github.com/sipeed/picoclaw/pkg/providers"
-	"github.com/sipeed/picoclaw/pkg/routing"
-	"github.com/sipeed/picoclaw/pkg/session"
-	"github.com/sipeed/picoclaw/pkg/tools"
+	"github.com/teren-papercutlabs/pclaw/pkg/bus"
+	"github.com/teren-papercutlabs/pclaw/pkg/config"
+	"github.com/teren-papercutlabs/pclaw/pkg/media"
+	"github.com/teren-papercutlabs/pclaw/pkg/providers"
+	"github.com/teren-papercutlabs/pclaw/pkg/routing"
+	"github.com/teren-papercutlabs/pclaw/pkg/session"
+	"github.com/teren-papercutlabs/pclaw/pkg/tools"
 )
 
 // --- steeringQueue unit tests ---

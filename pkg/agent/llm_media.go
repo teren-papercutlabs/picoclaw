@@ -3,7 +3,7 @@ package agent
 import (
 	"strings"
 
-	"github.com/sipeed/picoclaw/pkg/providers"
+	"github.com/teren-papercutlabs/pclaw/pkg/providers"
 )
 
 func messagesContainMedia(messages []providers.Message) bool {

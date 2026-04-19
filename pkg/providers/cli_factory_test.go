@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/teren-papercutlabs/pclaw/pkg/config"
 )
 
 func testProviderWorkspace(t *testing.T, provider any) string {

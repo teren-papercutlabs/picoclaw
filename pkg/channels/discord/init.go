@@ -1,10 +1,10 @@
 package discord
 
 import (
-	"github.com/sipeed/picoclaw/pkg/audio/tts"
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/channels"
-	"github.com/sipeed/picoclaw/pkg/config"
+	"github.com/teren-papercutlabs/pclaw/pkg/audio/tts"
+	"github.com/teren-papercutlabs/pclaw/pkg/bus"
+	"github.com/teren-papercutlabs/pclaw/pkg/channels"
+	"github.com/teren-papercutlabs/pclaw/pkg/config"
 )
 
 func init() {

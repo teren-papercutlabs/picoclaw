@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/sipeed/picoclaw/pkg/seahorse"
+	"github.com/teren-papercutlabs/pclaw/pkg/seahorse"
 )
 
 // ConvMap stores the mapping from sampleID to seahorse ConversationID.

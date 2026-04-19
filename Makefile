@@ -1,7 +1,7 @@
 .PHONY: all build install uninstall clean help test build-all lint-docs
 
 # Build variables
-BINARY_NAME=picoclaw
+BINARY_NAME=pclaw
 BUILD_DIR=build
 CMD_DIR=cmd/$(BINARY_NAME)
 MAIN_GO=$(CMD_DIR)/main.go
@@ -12,7 +12,7 @@ VERSION?=$(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 GIT_COMMIT=$(shell git rev-parse --short=8 HEAD 2>/dev/null || echo "dev")
 BUILD_TIME=$(shell date +%FT%T%z)
 GO_VERSION=$(shell $(GO) version | awk '{print $$3}')
-CONFIG_PKG=github.com/sipeed/picoclaw/pkg/config
+CONFIG_PKG=github.com/teren-papercutlabs/pclaw/pkg/config
 LDFLAGS=-X $(CONFIG_PKG).Version=$(VERSION) -X $(CONFIG_PKG).GitCommit=$(GIT_COMMIT) -X $(CONFIG_PKG).BuildTime=$(BUILD_TIME) -X $(CONFIG_PKG).GoVersion=$(GO_VERSION) -s -w
 
 # Go variables
@@ -142,28 +142,28 @@ build: generate
 	@echo "Build complete: $(BINARY_PATH)$(EXT)"
 	@$(LNCMD) $(BINARY_NAME)-$(PLATFORM)-$(ARCH)$(EXT) $(BUILD_DIR)/$(BINARY_NAME)$(EXT)
 
-## build-launcher: Build the picoclaw-launcher (web console) binary
+## build-launcher: Build the pclaw-launcher (web console) binary
 build-launcher:
-	@echo "Building picoclaw-launcher for $(PLATFORM)/$(ARCH)..."
+	@echo "Building pclaw-launcher for $(PLATFORM)/$(ARCH)..."
 	@mkdir -p $(BUILD_DIR)
 	@GOARCH=${ARCH} $(MAKE) -C web build \
-		OUTPUT="$(CURDIR)/$(BUILD_DIR)/picoclaw-launcher-$(PLATFORM)-$(ARCH)$(EXT)" \
+		OUTPUT="$(CURDIR)/$(BUILD_DIR)/pclaw-launcher-$(PLATFORM)-$(ARCH)$(EXT)" \
 		WEB_GO='$(WEB_GO)' \
 		GO_BUILD_TAGS='$(GO_BUILD_TAGS)' \
 		LDFLAGS='$(LDFLAGS)'
-	@$(LNCMD) picoclaw-launcher-$(PLATFORM)-$(ARCH)$(EXT) $(BUILD_DIR)/picoclaw-launcher$(EXT)
-	@echo "Build complete: $(BUILD_DIR)/picoclaw-launcher$(EXT)"
+	@$(LNCMD) pclaw-launcher-$(PLATFORM)-$(ARCH)$(EXT) $(BUILD_DIR)/pclaw-launcher$(EXT)
+	@echo "Build complete: $(BUILD_DIR)/pclaw-launcher$(EXT)"
 
 build-launcher-frontend:
 	@$(MAKE) -C web build-frontend
 
-## build-launcher-tui: Build the picoclaw-launcher TUI binary
+## build-launcher-tui: Build the pclaw-launcher TUI binary
 build-launcher-tui:
-	@echo "Building picoclaw-launcher-tui for $(PLATFORM)/$(ARCH)..."
+	@echo "Building pclaw-launcher-tui for $(PLATFORM)/$(ARCH)..."
 	@mkdir -p $(BUILD_DIR)
-	@$(GO) build $(GOFLAGS) -o $(BUILD_DIR)/picoclaw-launcher-tui-$(PLATFORM)-$(ARCH) ./cmd/picoclaw-launcher-tui
-	@ln -sf picoclaw-launcher-tui-$(PLATFORM)-$(ARCH) $(BUILD_DIR)/picoclaw-launcher-tui
-	@echo "Build complete: $(BUILD_DIR)/picoclaw-launcher-tui"
+	@$(GO) build $(GOFLAGS) -o $(BUILD_DIR)/pclaw-launcher-tui-$(PLATFORM)-$(ARCH) ./cmd/pclaw-launcher-tui
+	@ln -sf pclaw-launcher-tui-$(PLATFORM)-$(ARCH) $(BUILD_DIR)/pclaw-launcher-tui
+	@echo "Build complete: $(BUILD_DIR)/pclaw-launcher-tui"
 
 ## build-whatsapp-native: Build with WhatsApp native (whatsmeow) support; larger binary
 build-whatsapp-native: generate
@@ -214,13 +214,13 @@ build-android-arm64: generate
 
 ## build-launcher-android-arm64: Build launcher for Android ARM64
 build-launcher-android-arm64:
-	@echo "Building picoclaw-launcher for android/arm64..."
+	@echo "Building pclaw-launcher for android/arm64..."
 	@mkdir -p $(BUILD_DIR)
 	@$(MAKE) -C web build-android-arm64 \
-		OUTPUT_ANDROID_ARM64="$(CURDIR)/$(BUILD_DIR)/picoclaw-launcher-android-arm64" \
+		OUTPUT_ANDROID_ARM64="$(CURDIR)/$(BUILD_DIR)/pclaw-launcher-android-arm64" \
 		GO='$(GO)' \
 		LDFLAGS='$(LDFLAGS)'
-	@echo "Build complete: $(BUILD_DIR)/picoclaw-launcher-android-arm64"
+	@echo "Build complete: $(BUILD_DIR)/pclaw-launcher-android-arm64"
 
 ## build-android-bundle: Build core and launcher for all Android architectures and package as universal zip
 build-android-bundle: generate
@@ -233,10 +233,10 @@ build-android-bundle: generate
 	@rm -rf $(BUILD_DIR)/android-staging
 	@mkdir -p $(BUILD_DIR)/android-staging/arm64-v8a
 	@cp $(BUILD_DIR)/$(BINARY_NAME)-android-arm64 $(BUILD_DIR)/android-staging/arm64-v8a/libpicoclaw.so
-	@cp $(BUILD_DIR)/picoclaw-launcher-android-arm64 $(BUILD_DIR)/android-staging/arm64-v8a/libpicoclaw-web.so
-	@cd $(BUILD_DIR)/android-staging && zip -r ../picoclaw-android-universal.zip .
+	@cp $(BUILD_DIR)/pclaw-launcher-android-arm64 $(BUILD_DIR)/android-staging/arm64-v8a/libpicoclaw-web.so
+	@cd $(BUILD_DIR)/android-staging && zip -r ../pclaw-android-universal.zip .
 	@rm -rf $(BUILD_DIR)/android-staging
-	@echo "All Android builds complete: $(BUILD_DIR)/picoclaw-android-universal.zip"
+	@echo "All Android builds complete: $(BUILD_DIR)/pclaw-android-universal.zip"
 
 ## build-pi-zero: Build for Raspberry Pi Zero 2 W (32-bit and 64-bit)
 build-pi-zero: build-linux-arm build-linux-arm64
@@ -296,12 +296,12 @@ clean:
 ## vet: Run go vet for static analysis
 vet: generate
 	@packages="$$($(GO) list $(GOFLAGS) ./...)" && \
-		$(GO) vet $(GOFLAGS) $$(printf '%s\n' "$$packages" | grep -v '^github.com/sipeed/picoclaw/web/')
+		$(GO) vet $(GOFLAGS) $$(printf '%s\n' "$$packages" | grep -v '^github.com/teren-papercutlabs/pclaw/web/')
 	@cd web/backend && $(WEB_GO) vet ./...
 
 ## test: Test Go code
 test: generate
-	@$(GO) test $(GOFLAGS) $$($(GO) list $(GOFLAGS) ./... | grep -v github.com/sipeed/picoclaw/web/)
+	@$(GO) test $(GOFLAGS) $$($(GO) list $(GOFLAGS) ./... | grep -v github.com/teren-papercutlabs/pclaw/web/)
 	@cd web && make test
 
 ## fmt: Format Go code

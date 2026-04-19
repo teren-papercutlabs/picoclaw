@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sipeed/picoclaw/pkg/bus"
-	"github.com/sipeed/picoclaw/pkg/commands"
-	"github.com/sipeed/picoclaw/pkg/providers"
+	"github.com/teren-papercutlabs/pclaw/pkg/bus"
+	"github.com/teren-papercutlabs/pclaw/pkg/commands"
+	"github.com/teren-papercutlabs/pclaw/pkg/providers"
 )
 
 func (al *AgentLoop) handleCommand(

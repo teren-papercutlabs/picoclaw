@@ -5,7 +5,7 @@ package agent
 import (
 	"fmt"
 
-	"github.com/sipeed/picoclaw/pkg/logger"
+	"github.com/teren-papercutlabs/pclaw/pkg/logger"
 )
 
 func (al *AgentLoop) newTurnEventScope(agentID, sessionKey string, turnCtx *TurnContext) turnEventScope {

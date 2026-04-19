@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/sipeed/picoclaw/web/backend/middleware"
+	"github.com/teren-papercutlabs/pclaw/web/backend/middleware"
 )
 
 // PasswordStore is the interface for bcrypt-backed dashboard password persistence.

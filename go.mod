@@ -1,4 +1,4 @@
-module github.com/sipeed/picoclaw
+module github.com/teren-papercutlabs/pclaw
 
 go 1.25.9
 

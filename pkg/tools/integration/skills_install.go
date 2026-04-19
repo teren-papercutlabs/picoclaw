@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/fileutil"
-	"github.com/sipeed/picoclaw/pkg/logger"
-	"github.com/sipeed/picoclaw/pkg/skills"
-	"github.com/sipeed/picoclaw/pkg/utils"
+	"github.com/teren-papercutlabs/pclaw/pkg/fileutil"
+	"github.com/teren-papercutlabs/pclaw/pkg/logger"
+	"github.com/teren-papercutlabs/pclaw/pkg/skills"
+	"github.com/teren-papercutlabs/pclaw/pkg/utils"
 )
 
 const defaultSkillRegistryName = "github"

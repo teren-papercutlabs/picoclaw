@@ -5,7 +5,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/sipeed/picoclaw/web/backend/launcherconfig"
+	"github.com/teren-papercutlabs/pclaw/web/backend/launcherconfig"
 )
 
 // Handler serves HTTP API requests.

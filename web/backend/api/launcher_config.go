@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/sipeed/picoclaw/web/backend/launcherconfig"
+	"github.com/teren-papercutlabs/pclaw/web/backend/launcherconfig"
 )
 
 type launcherConfigPayload struct {

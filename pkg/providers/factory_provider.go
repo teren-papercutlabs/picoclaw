@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/config"
-	anthropicmessages "github.com/sipeed/picoclaw/pkg/providers/anthropic_messages"
-	"github.com/sipeed/picoclaw/pkg/providers/azure"
-	"github.com/sipeed/picoclaw/pkg/providers/bedrock"
+	"github.com/teren-papercutlabs/pclaw/pkg/config"
+	anthropicmessages "github.com/teren-papercutlabs/pclaw/pkg/providers/anthropic_messages"
+	"github.com/teren-papercutlabs/pclaw/pkg/providers/azure"
+	"github.com/teren-papercutlabs/pclaw/pkg/providers/bedrock"
 )
 
 type protocolMeta struct {

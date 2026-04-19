@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/sipeed/picoclaw/web/backend/middleware"
+	"github.com/teren-papercutlabs/pclaw/web/backend/middleware"
 )
 
 func TestLoadReturnsFallbackWhenMissing(t *testing.T) {

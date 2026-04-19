@@ -37,9 +37,9 @@ services:
   # PicoClaw Launcher (Web Console + Gateway)
   #   docker compose -f docker/docker-compose.yml --profile launcher up
   # ─────────────────────────────────────────────
-  picoclaw-launcher:
+  pclaw-launcher:
     image: docker.io/sipeed/picoclaw:launcher
-    container_name: picoclaw-launcher
+    container_name: pclaw-launcher
     restart: unless-stopped
     profiles:
       - launcher

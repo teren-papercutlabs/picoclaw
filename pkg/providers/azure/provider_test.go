@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/providers/protocoltypes"
+	"github.com/teren-papercutlabs/pclaw/pkg/providers/protocoltypes"
 )
 
 // writeValidResponse writes a minimal valid Responses API response.

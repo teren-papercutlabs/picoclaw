@@ -3,8 +3,8 @@ package tools
 import (
 	"context"
 
-	"github.com/sipeed/picoclaw/pkg/session"
-	toolshared "github.com/sipeed/picoclaw/pkg/tools/shared"
+	"github.com/teren-papercutlabs/pclaw/pkg/session"
+	toolshared "github.com/teren-papercutlabs/pclaw/pkg/tools/shared"
 )
 
 type (

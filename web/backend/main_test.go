@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/netbind"
-	"github.com/sipeed/picoclaw/web/backend/launcherconfig"
+	"github.com/teren-papercutlabs/pclaw/pkg/netbind"
+	"github.com/teren-papercutlabs/pclaw/web/backend/launcherconfig"
 )
 
 func TestShouldEnableLauncherFileLogging(t *testing.T) {

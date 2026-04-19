@@ -3,10 +3,10 @@ package tools
 import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/sipeed/picoclaw/pkg/audio/tts"
-	"github.com/sipeed/picoclaw/pkg/media"
-	"github.com/sipeed/picoclaw/pkg/skills"
-	integrationtools "github.com/sipeed/picoclaw/pkg/tools/integration"
+	"github.com/teren-papercutlabs/pclaw/pkg/audio/tts"
+	"github.com/teren-papercutlabs/pclaw/pkg/media"
+	"github.com/teren-papercutlabs/pclaw/pkg/skills"
+	integrationtools "github.com/teren-papercutlabs/pclaw/pkg/tools/integration"
 )
 
 type (

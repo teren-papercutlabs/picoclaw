@@ -4,9 +4,9 @@
 package agent
 
 import (
-	"github.com/sipeed/picoclaw/pcl/telemetry"
-	"github.com/sipeed/picoclaw/pkg/logger"
-	"github.com/sipeed/picoclaw/pkg/providers"
+	"github.com/teren-papercutlabs/pclaw/pcl/telemetry"
+	"github.com/teren-papercutlabs/pclaw/pkg/logger"
+	"github.com/teren-papercutlabs/pclaw/pkg/providers"
 )
 
 // pclCostTracker is the narrow interface AgentLoop depends on for cost

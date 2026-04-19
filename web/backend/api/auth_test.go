@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sipeed/picoclaw/web/backend/middleware"
+	"github.com/teren-papercutlabs/pclaw/web/backend/middleware"
 )
 
 func TestLauncherAuthLoginAndStatus(t *testing.T) {

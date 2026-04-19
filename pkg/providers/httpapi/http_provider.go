@@ -10,7 +10,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/sipeed/picoclaw/pkg/providers/openai_compat"
+	"github.com/teren-papercutlabs/pclaw/pkg/providers/openai_compat"
 )
 
 type HTTPProvider struct {

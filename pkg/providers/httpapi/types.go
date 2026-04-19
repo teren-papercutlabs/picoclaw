@@ -3,7 +3,7 @@ package httpapi
 import (
 	"context"
 
-	"github.com/sipeed/picoclaw/pkg/providers/protocoltypes"
+	"github.com/teren-papercutlabs/pclaw/pkg/providers/protocoltypes"
 )
 
 type (

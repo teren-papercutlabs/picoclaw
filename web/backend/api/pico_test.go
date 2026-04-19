@@ -11,9 +11,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/sipeed/picoclaw/pkg/channels/pico"
-	"github.com/sipeed/picoclaw/pkg/config"
-	ppid "github.com/sipeed/picoclaw/pkg/pid"
+	"github.com/teren-papercutlabs/pclaw/pkg/channels/pico"
+	"github.com/teren-papercutlabs/pclaw/pkg/config"
+	ppid "github.com/teren-papercutlabs/pclaw/pkg/pid"
 )
 
 func TestEnsurePicoChannel_FreshConfig(t *testing.T) {

@@ -23,10 +23,10 @@ builds:
       - stdjson
     ldflags:
       - -s -w
-      - -X github.com/sipeed/picoclaw/pkg/config.Version={{ .Version }}
-      - -X github.com/sipeed/picoclaw/pkg/config.GitCommit={{ .ShortCommit }}
-      - -X github.com/sipeed/picoclaw/pkg/config.BuildTime={{ .Date }}
-      - -X github.com/sipeed/picoclaw/pkg/config.GoVersion={{ with index .Env "GOVERSION" }}{{ . }}{{ else }}unknown{{ end }}
+      - -X github.com/teren-papercutlabs/pclaw/pkg/config.Version={{ .Version }}
+      - -X github.com/teren-papercutlabs/pclaw/pkg/config.GitCommit={{ .ShortCommit }}
+      - -X github.com/teren-papercutlabs/pclaw/pkg/config.BuildTime={{ .Date }}
+      - -X github.com/teren-papercutlabs/pclaw/pkg/config.GoVersion={{ with index .Env "GOVERSION" }}{{ . }}{{ else }}unknown{{ end }}
     goos:
       - linux
       - windows
@@ -46,7 +46,7 @@ builds:
       - "7"
     gomips:
       - softfloat
-    main: ./cmd/picoclaw
+    main: ./cmd/pclaw
     ignore:
       - goos: windows
         goarch: arm
@@ -57,8 +57,8 @@ builds:
       - goos: netbsd
         goarch: arm
 
-  - id: picoclaw-launcher
-    binary: picoclaw-launcher
+  - id: pclaw-launcher
+    binary: pclaw-launcher
     env:
       - CGO_ENABLED=0
     tags:
@@ -66,10 +66,10 @@ builds:
       - stdjson
     ldflags:
       - -s -w
-      - -X github.com/sipeed/picoclaw/pkg/config.Version={{ .Version }}
-      - -X github.com/sipeed/picoclaw/pkg/config.GitCommit={{ .ShortCommit }}
-      - -X github.com/sipeed/picoclaw/pkg/config.BuildTime={{ .Date }}
-      - -X github.com/sipeed/picoclaw/pkg/config.GoVersion={{ with index .Env "GOVERSION" }}{{ . }}{{ else }}unknown{{ end }}
+      - -X github.com/teren-papercutlabs/pclaw/pkg/config.Version={{ .Version }}
+      - -X github.com/teren-papercutlabs/pclaw/pkg/config.GitCommit={{ .ShortCommit }}
+      - -X github.com/teren-papercutlabs/pclaw/pkg/config.BuildTime={{ .Date }}
+      - -X github.com/teren-papercutlabs/pclaw/pkg/config.GoVersion={{ with index .Env "GOVERSION" }}{{ . }}{{ else }}unknown{{ end }}
     goos:
       - linux
       - windows
@@ -100,8 +100,8 @@ builds:
       - goos: netbsd
         goarch: arm
 
-  - id: picoclaw-launcher-tui
-    binary: picoclaw-launcher-tui
+  - id: pclaw-launcher-tui
+    binary: pclaw-launcher-tui
     env:
       - CGO_ENABLED=0
     tags:
@@ -109,10 +109,10 @@ builds:
       - stdjson
     ldflags:
       - -s -w
-      - -X github.com/sipeed/picoclaw/pkg/config.Version={{ .Version }}
-      - -X github.com/sipeed/picoclaw/pkg/config.GitCommit={{ .ShortCommit }}
-      - -X github.com/sipeed/picoclaw/pkg/config.BuildTime={{ .Date }}
-      - -X github.com/sipeed/picoclaw/pkg/config.GoVersion={{ with index .Env "GOVERSION" }}{{ . }}{{ else }}unknown{{ end }}
+      - -X github.com/teren-papercutlabs/pclaw/pkg/config.Version={{ .Version }}
+      - -X github.com/teren-papercutlabs/pclaw/pkg/config.GitCommit={{ .ShortCommit }}
+      - -X github.com/teren-papercutlabs/pclaw/pkg/config.BuildTime={{ .Date }}
+      - -X github.com/teren-papercutlabs/pclaw/pkg/config.GoVersion={{ with index .Env "GOVERSION" }}{{ . }}{{ else }}unknown{{ end }}
     goos:
       - linux
       - windows
@@ -132,7 +132,7 @@ builds:
       - "7"
     gomips:
       - softfloat
-    main: ./cmd/picoclaw-launcher-tui
+    main: ./cmd/pclaw-launcher-tui
     ignore:
       - goos: windows
         goarch: arm
@@ -161,12 +161,12 @@ dockers_v2:
       - linux/arm64
       - linux/riscv64
 
-  - id: picoclaw-launcher
+  - id: pclaw-launcher
     dockerfile: docker/Dockerfile.goreleaser.launcher
     ids:
       - picoclaw
-      - picoclaw-launcher
-      - picoclaw-launcher-tui
+      - pclaw-launcher
+      - pclaw-launcher-tui
     images:
       - "ghcr.io/{{ .Env.GITHUB_REPOSITORY_OWNER }}/picoclaw"
       - 'docker.io/{{ .Env.DOCKERHUB_IMAGE_NAME }}'
@@ -183,8 +183,8 @@ notarize:
     - enabled: '{{ isEnvSet "MACOS_SIGN_P12" }}'
       ids:
         - picoclaw
-        - picoclaw-launcher
-        - picoclaw-launcher-tui
+        - pclaw-launcher
+        - pclaw-launcher-tui
       sign:
         certificate: "{{.Env.MACOS_SIGN_P12}}"
         password: "{{.Env.MACOS_SIGN_PASSWORD}}"
@@ -214,8 +214,8 @@ nfpms:
   - id: picoclaw
     ids:
       - picoclaw
-      - picoclaw-launcher
-      - picoclaw-launcher-tui
+      - pclaw-launcher
+      - pclaw-launcher-tui
     package_name: picoclaw
     file_name_template: >-
       {{ .PackageName }}_
@@ -233,10 +233,10 @@ nfpms:
       - deb
     bindir: /usr/bin
     contents:
-      - src: web/picoclaw-launcher.desktop
-        dst: /usr/share/applications/picoclaw-launcher.desktop
-      - src: web/picoclaw-launcher.png
-        dst: /usr/share/icons/hicolor/512x512/apps/picoclaw-launcher.png
+      - src: web/pclaw-launcher.desktop
+        dst: /usr/share/applications/pclaw-launcher.desktop
+      - src: web/pclaw-launcher.png
+        dst: /usr/share/icons/hicolor/512x512/apps/pclaw-launcher.png
 
 changelog:
   sort: asc
@@ -253,7 +253,7 @@ changelog:
 release:
   disable: '{{ isEnvSet "NIGHTLY_BUILD" }}'
   extra_files:
-    - glob: ./build/picoclaw-android-universal.zip
+    - glob: ./build/pclaw-android-universal.zip
   footer: >-
 
     ---
