@@ -5,6 +5,7 @@ package agent
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/sipeed/picoclaw/pcl/telemetry" // PCL-DOWNSTREAM: cost tracking
@@ -77,6 +78,30 @@ func NewAgentLoop(
 		for model, p := range cfg.CostTracking.Prices {
 			prices[model] = telemetry.ModelPrice{Input: p.Input, Output: p.Output}
 		}
+
+		// Startup validation: refuse to start if any configured model lacks a
+		// price entry. Prevents silent cost-untracked traffic.
+		var allModels []string
+		for _, m := range cfg.ModelList {
+			if m != nil {
+				allModels = append(allModels, m.ModelName)
+			}
+		}
+		for _, a := range cfg.Agents.List {
+			if a.Model != nil {
+				allModels = append(allModels, a.Model.Primary)
+				allModels = append(allModels, a.Model.Fallbacks...)
+			}
+		}
+		if cfg.Agents.Defaults.ModelName != "" {
+			allModels = append(allModels, cfg.Agents.Defaults.ModelName)
+		}
+		if err := telemetry.ValidateModelPrices(allModels, prices); err != nil {
+			logger.ErrorCF("cost_tracking", "Startup blocked", map[string]any{"error": err.Error()})
+			fmt.Fprintf(os.Stderr, "FATAL: %s\n", err.Error())
+			os.Exit(1)
+		}
+
 		logPath := cfg.CostTracking.LogPath
 		if logPath == "" {
 			logPath = "/home/picoclaw/telemetry/cost.jsonl"
