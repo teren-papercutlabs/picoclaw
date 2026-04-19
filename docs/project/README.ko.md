@@ -476,7 +476,6 @@ PicoClaw는 `model_list` 설정을 통해 30개 이상의 LLM 프로바이더를
 | **Feishu / Lark** | 중간(App ID + Secret) | WebSocket/SDK | [가이드](../channels/feishu/README.md) |
 | **LINE** | 중간(인증 정보 + webhook) | Webhook | [가이드](../channels/line/README.md) |
 | **WeCom** | 쉬움(QR 로그인 또는 수동 설정) | WebSocket | [가이드](../channels/wecom/README.md) |
-| **VK** | 쉬움(그룹 토큰) | Long Poll | [가이드](../channels/vk/README.md) |
 | **IRC** | 중간(서버 + 닉네임) | IRC protocol | [가이드](../guides/chat-apps.md#irc) |
 | **OneBot** | 중간(WebSocket URL) | OneBot v11 | [가이드](../channels/onebot/README.md) |
 | **MaixCam** | 쉬움(활성화) | TCP socket | [가이드](../channels/maixcam/README.md) |

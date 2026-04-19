@@ -438,8 +438,6 @@ func (m *Manager) getChannelConfigAndEnabled(channelName string) (*config.Channe
 		return bc, true
 	case *config.DiscordSettings:
 		return bc, settings.Token.String() != ""
-	case *config.VKSettings:
-		return bc, settings.GroupID != 0 && settings.Token.String() != ""
 	}
 
 	return bc, bc.Enabled

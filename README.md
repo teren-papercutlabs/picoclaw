@@ -480,7 +480,6 @@ Talk to your PicoClaw through 18+ messaging platforms:
 | **Feishu / Lark** | Medium (App ID + Secret) | WebSocket/SDK | [Guide](docs/channels/feishu/README.md) |
 | **LINE** | Medium (credentials + webhook) | Webhook | [Guide](docs/channels/line/README.md) |
 | **WeCom** | Easy (QR login or manual) | WebSocket | [Guide](docs/channels/wecom/README.md) |
-| **VK** | Easy (group token) | Long Poll | [Guide](docs/channels/vk/README.md) |
 | **IRC** | Medium (server + nick) | IRC protocol | [Guide](docs/guides/chat-apps.md#irc) |
 | **OneBot** | Medium (WebSocket URL) | OneBot v11 | [Guide](docs/channels/onebot/README.md) |
 | **MaixCam** | Easy (enable) | TCP socket | [Guide](docs/channels/maixcam/README.md) |

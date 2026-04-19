@@ -28,7 +28,6 @@ const (
 	ChannelOneBot         = "onebot"
 	ChannelQQ             = "qq"
 	ChannelIRC            = "irc"
-	ChannelVK             = "vk"
 	ChannelMaixCam        = "maixcam"
 	ChannelWhatsApp       = "whatsapp"
 	ChannelWhatsAppNative = "whatsapp_native"
@@ -635,7 +634,6 @@ var channelSettingsFactory = map[string]any{
 	ChannelOneBot:         (OneBotSettings{}),
 	ChannelQQ:             (QQSettings{}),
 	ChannelIRC:            (IRCSettings{}),
-	ChannelVK:             (VKSettings{}),
 	ChannelMaixCam:        (MaixCamSettings{}),
 	ChannelWhatsApp:       (WhatsAppSettings{}),
 	ChannelWhatsAppNative: (WhatsAppSettings{}),

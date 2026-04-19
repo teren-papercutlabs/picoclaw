@@ -483,15 +483,6 @@ type IRCSettings struct {
 	RequestCaps      FlexibleStringSlice `json:"request_caps,omitempty"     yaml:"-"`
 }
 
-type VKSettings struct {
-	Token   SecureString `json:"token,omitzero" yaml:"token,omitempty" env:"PICOCLAW_CHANNELS_VK_TOKEN"`
-	GroupID int          `json:"group_id"       yaml:"-"               env:"PICOCLAW_CHANNELS_VK_GROUP_ID"`
-}
-
-func (c *VKSettings) SetToken(token string) {
-	c.Token = *NewSecureString(token)
-}
-
 // TeamsWebhookSettings configures the output-only Microsoft Teams webhook channel.
 // Multiple webhook targets can be configured and selected via ChatID at send time.
 type TeamsWebhookSettings struct {

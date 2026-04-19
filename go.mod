@@ -5,7 +5,6 @@ go 1.25.9
 require (
 	fyne.io/systray v1.12.0
 	github.com/BurntSushi/toml v1.6.0
-	github.com/SevereCloud/vksdk/v3 v3.3.1
 	github.com/adhocore/gronx v1.19.6
 	github.com/anthropics/anthropic-sdk-go v1.26.0
 	github.com/atc0005/go-teams-notify/v2 v2.14.0
@@ -98,8 +97,6 @@ require (
 	github.com/segmentio/asm v1.1.3 // indirect
 	github.com/segmentio/encoding v0.5.4 // indirect
 	github.com/vektah/gqlparser/v2 v2.5.27 // indirect
-	github.com/vmihailenco/msgpack/v5 v5.4.1 // indirect
-	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	go.mau.fi/libsignal v0.2.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
