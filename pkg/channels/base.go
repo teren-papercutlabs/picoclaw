@@ -71,6 +71,14 @@ func WithReasoningChannelID(id string) BaseChannelOption {
 	return func(c *BaseChannel) { c.reasoningChannelID = id }
 }
 
+// WithTypingEnabled gates the auto-triggered typing indicator in HandleMessage.
+// Default is false (zero value): silent-ingest bots do not flash "is typing" /
+// "Thinking..." bubbles on every inbound message. Pass true for customer-facing
+// bots where typing signals responsiveness.
+func WithTypingEnabled(enabled bool) BaseChannelOption {
+	return func(c *BaseChannel) { c.typingEnabled = enabled }
+}
+
 // MessageLengthProvider is an opt-in interface that channels implement
 // to advertise their maximum message length. The Manager uses this via
 // type assertion to decide whether to split outbound messages.
@@ -90,6 +98,7 @@ type BaseChannel struct {
 	placeholderRecorder PlaceholderRecorder
 	owner               Channel // the concrete channel that embeds this BaseChannel
 	reasoningChannelID  string
+	typingEnabled       bool
 }
 
 func NewBaseChannel(
@@ -272,10 +281,14 @@ func (c *BaseChannel) HandleMessage(
 	// Auto-trigger typing indicator, message reaction, and placeholder before publishing.
 	// Each capability is independent — all three may fire for the same message.
 	if c.owner != nil && c.placeholderRecorder != nil {
-		// Typing — independent pipeline
-		if tc, ok := c.owner.(TypingCapable); ok {
-			if stop, err := tc.StartTyping(ctx, chatID); err == nil {
-				c.placeholderRecorder.RecordTypingStop(c.name, chatID, stop)
+		// Typing — independent pipeline, gated by per-channel config.
+		// Default is OFF: silent-ingest bots (internal pipelines that do not reply
+		// every turn) must not flash "Thinking..." on every inbound message.
+		if c.typingEnabled {
+			if tc, ok := c.owner.(TypingCapable); ok {
+				if stop, err := tc.StartTyping(ctx, chatID); err == nil {
+					c.placeholderRecorder.RecordTypingStop(c.name, chatID, stop)
+				}
 			}
 		}
 		// Reaction — independent pipeline

@@ -53,7 +53,7 @@ func DefaultConfig() *Config {
 				Enabled:   false,
 				Token:     "",
 				AllowFrom: FlexibleStringSlice{},
-				Typing:    TypingConfig{Enabled: true},
+				Typing:    TypingConfig{Enabled: false},
 				Placeholder: PlaceholderConfig{
 					Enabled: true,
 					Text:    "Thinking... 💭",

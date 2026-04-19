@@ -37,6 +37,7 @@ func NewIRCChannel(cfg config.IRCConfig, messageBus *bus.MessageBus) (*IRCChanne
 		channels.WithMaxMessageLength(400),
 		channels.WithGroupTrigger(cfg.GroupTrigger),
 		channels.WithReasoningChannelID(cfg.ReasoningChannelID),
+		channels.WithTypingEnabled(cfg.Typing.Enabled),
 	)
 
 	return &IRCChannel{

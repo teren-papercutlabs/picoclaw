@@ -57,6 +57,7 @@ func NewDiscordChannel(cfg config.DiscordConfig, bus *bus.MessageBus) (*DiscordC
 		channels.WithMaxMessageLength(2000),
 		channels.WithGroupTrigger(cfg.GroupTrigger),
 		channels.WithReasoningChannelID(cfg.ReasoningChannelID),
+		channels.WithTypingEnabled(cfg.Typing.Enabled),
 	)
 
 	return &DiscordChannel{
