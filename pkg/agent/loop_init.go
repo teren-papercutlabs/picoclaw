@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/sipeed/picoclaw/pcl/telemetry" // PCL-DOWNSTREAM: cost tracking
 	"github.com/sipeed/picoclaw/pkg/audio/tts"
 	"github.com/sipeed/picoclaw/pkg/bus"
 	"github.com/sipeed/picoclaw/pkg/channels"
@@ -69,6 +70,19 @@ func NewAgentLoop(
 	al.hooks = NewHookManager(eventBus)
 	configureHookManagerFromConfig(al.hooks, cfg)
 	al.contextManager = al.resolveContextManager()
+
+	// PCL-DOWNSTREAM: cost tracking — initialise tracker when enabled.
+	if cfg.CostTracking.Enabled {
+		prices := make(map[string]telemetry.ModelPrice, len(cfg.CostTracking.Prices))
+		for model, p := range cfg.CostTracking.Prices {
+			prices[model] = telemetry.ModelPrice{Input: p.Input, Output: p.Output}
+		}
+		logPath := cfg.CostTracking.LogPath
+		if logPath == "" {
+			logPath = "/home/picoclaw/telemetry/cost.jsonl"
+		}
+		al.costTracker = telemetry.NewCostTracker(logPath, prices)
+	}
 
 	// Register shared tools to all agents (now that al is created)
 	registerSharedTools(al, cfg, msgBus, registry, provider)

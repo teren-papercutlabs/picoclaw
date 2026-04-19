@@ -68,6 +68,9 @@ type AgentLoop struct {
 	reloadFunc func() error
 
 	providerFactory func(*config.ModelConfig) (providers.LLMProvider, string, error)
+
+	// PCL-DOWNSTREAM: cost tracking — nil when cost_tracking is disabled.
+	costTracker pclCostTracker
 }
 
 // processOptions configures how a message is processed

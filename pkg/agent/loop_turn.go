@@ -31,6 +31,26 @@ func (al *AgentLoop) runTurn(ctx context.Context, ts *turnState) (turnResult, er
 	al.registerActiveTurn(ts)
 	defer al.clearActiveTurn(ts)
 
+	// PCL-DOWNSTREAM: cost tracking — accumulate across iterations at the top
+	// turn level only. SubTurns are intentionally not tracked as separate
+	// entries; their LLM usage is attributed to the parent turn.
+	var pclUsage *pclTurnUsage
+	var pclTurnStart time.Time
+	if al.costTracker != nil && ts.depth == 0 {
+		pclUsage = &pclTurnUsage{}
+		pclTurnStart = time.Now()
+		defer func() {
+			al.pclCostTrack(
+				ts.agent.ID,
+				ts.agent.Model,
+				ts.sessionKey,
+				pclUsage,
+				ts.currentIteration(),
+				time.Since(pclTurnStart).Milliseconds(),
+			)
+		}()
+	}
+
 	turnStatus := TurnEndStatusCompleted
 	defer func() {
 		al.emitEvent(
@@ -594,6 +614,9 @@ turnLoop:
 				innerTS.SetLastUsage(response.Usage)
 			}
 		}
+
+		// PCL-DOWNSTREAM: cost tracking — accumulate this iteration's token usage.
+		pclAccumulateUsage(pclUsage, response.Usage)
 
 		reasoningContent := response.Reasoning
 		if reasoningContent == "" {
@@ -1190,6 +1213,9 @@ turnLoop:
 			if toolResult == nil {
 				toolResult = tools.ErrorResult("hook returned nil tool result")
 			}
+
+			// PCL-DOWNSTREAM: cost tracking — record the outcome of this tool call.
+			pclAppendToolResult(pclUsage, toolName, toolResult.Err)
 
 			if len(toolResult.Media) > 0 && toolResult.ResponseHandled {
 				parts := make([]bus.MediaPart, 0, len(toolResult.Media))

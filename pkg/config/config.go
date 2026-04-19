@@ -44,6 +44,9 @@ type Config struct {
 	Heartbeat HeartbeatConfig `json:"heartbeat"           yaml:"-"`
 	Devices   DevicesConfig   `json:"devices"             yaml:"-"`
 	Voice     VoiceConfig     `json:"voice"               yaml:"-"`
+	// CostTracking controls PcL downstream cost telemetry (JSONL logging of
+	// LLM token usage, per-model pricing, and tool outcomes per turn).
+	CostTracking CostTrackingConfig `json:"cost_tracking,omitempty" yaml:"-"`
 	// BuildInfo contains build-time version information
 	BuildInfo BuildInfo `json:"build_info,omitempty" yaml:"-"`
 
@@ -516,6 +519,23 @@ type VoiceConfig struct {
 	TTSModelName      string `json:"tts_model_name,omitempty"     env:"PICOCLAW_VOICE_TTS_MODEL_NAME"`
 	EchoTranscription bool   `json:"echo_transcription"           env:"PICOCLAW_VOICE_ECHO_TRANSCRIPTION"`
 	ElevenLabsAPIKey  string `json:"elevenlabs_api_key,omitempty" env:"PICOCLAW_VOICE_ELEVENLABS_API_KEY"`
+}
+
+// CostTrackingConfig controls the PCL cost telemetry feature. When enabled,
+// every completed agent turn is appended as a JSONL entry to LogPath,
+// capturing token usage, USD cost (computed from Prices), and tool outcomes.
+// PCL-DOWNSTREAM: cost tracking
+type CostTrackingConfig struct {
+	Enabled bool                      `json:"enabled"  env:"PICOCLAW_COST_TRACKING_ENABLED"`
+	LogPath string                    `json:"log_path" env:"PICOCLAW_COST_TRACKING_LOG_PATH"`
+	Prices  map[string]ModelPriceConf `json:"prices"`
+}
+
+// ModelPriceConf holds per-million-token pricing for a single model.
+// PCL-DOWNSTREAM: cost tracking
+type ModelPriceConf struct {
+	Input  float64 `json:"input"`  // USD per 1M prompt tokens
+	Output float64 `json:"output"` // USD per 1M completion tokens
 }
 
 // ModelConfig represents a model-centric provider configuration.
