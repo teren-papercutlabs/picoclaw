@@ -23,6 +23,7 @@ import (
 	_ "github.com/sipeed/picoclaw/pkg/channels/dingtalk"
 	_ "github.com/sipeed/picoclaw/pkg/channels/discord"
 	_ "github.com/sipeed/picoclaw/pkg/channels/feishu"
+	_ "github.com/sipeed/picoclaw/pkg/channels/http"
 	_ "github.com/sipeed/picoclaw/pkg/channels/irc"
 	_ "github.com/sipeed/picoclaw/pkg/channels/line"
 	_ "github.com/sipeed/picoclaw/pkg/channels/maixcam"
@@ -397,6 +398,9 @@ func setupAndStartServices(
 
 	agentLoop.SetChannelManager(runningServices.ChannelManager)
 	agentLoop.SetMediaStore(runningServices.MediaStore)
+	// Inject agent executor so inbound-only channels (e.g. HTTP webhook) can
+	// drive the agent loop directly without going through the bus.
+	runningServices.ChannelManager.SetAgentExecutor(agentLoop)
 
 	transcriber := asr.DetectTranscriber(cfg)
 	if transcriber != nil {

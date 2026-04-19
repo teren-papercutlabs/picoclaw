@@ -495,6 +495,12 @@ type TeamsWebhookTarget struct {
 	Title      string       `json:"title,omitempty"      yaml:"-"`
 }
 
+// HTTPSettings configures the HTTP webhook channel. It is registered as a
+// channel type in the map-based ChannelsConfig so picoclaw agents can receive
+// programmatic webhook invocations from n8n, Make, or similar automations.
+// The channel is singleton (only one HTTP webhook endpoint per gateway).
+type HTTPSettings struct{}
+
 type HeartbeatConfig struct {
 	Enabled  bool `json:"enabled"  env:"PICOCLAW_HEARTBEAT_ENABLED"`
 	Interval int  `json:"interval" env:"PICOCLAW_HEARTBEAT_INTERVAL"` // minutes, min 5

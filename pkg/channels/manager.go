@@ -84,6 +84,7 @@ type Manager struct {
 	bus           *bus.MessageBus
 	config        *config.Config
 	mediaStore    media.MediaStore
+	agentExec     AgentExecutor // optional; injected via SetAgentExecutor for channels like HTTP webhook
 	dispatchTask  *asyncTask
 	mux           *dynamicServeMux
 	httpServer    *http.Server
@@ -369,6 +370,12 @@ func (m *Manager) initChannel(typeName, channelName string) {
 		if setter, ok := ch.(interface{ SetOwner(ch Channel) }); ok {
 			setter.SetOwner(ch)
 		}
+		// Inject AgentExecutor if the channel accepts one and the manager has one set
+		if m.agentExec != nil {
+			if setter, ok := ch.(AgentExecutorSetter); ok {
+				setter.SetExecutor(m.agentExec)
+			}
+		}
 		m.channels[channelName] = ch
 		logger.InfoCF("channels", "Channel enabled successfully", map[string]any{
 			"channel": channelName,
@@ -438,6 +445,10 @@ func (m *Manager) getChannelConfigAndEnabled(channelName string) (*config.Channe
 		return bc, true
 	case *config.DiscordSettings:
 		return bc, settings.Token.String() != ""
+	case *config.HTTPSettings:
+		// HTTP webhook channel has no required fields; enabled == ready.
+		_ = settings
+		return bc, true
 	}
 
 	return bc, bc.Enabled
@@ -1091,6 +1102,21 @@ func (m *Manager) runTTLJanitor(ctx context.Context) {
 				}
 				return true
 			})
+		}
+	}
+}
+
+// SetAgentExecutor injects an agent executor into channels that require it
+// (e.g. the HTTP webhook channel). Safe to call after StartAll — channels
+// that already exist are injected immediately. Channels constructed later
+// (via Reload) will be injected via initChannel.
+func (m *Manager) SetAgentExecutor(exec AgentExecutor) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.agentExec = exec
+	for _, ch := range m.channels {
+		if setter, ok := ch.(AgentExecutorSetter); ok {
+			setter.SetExecutor(exec)
 		}
 	}
 }
