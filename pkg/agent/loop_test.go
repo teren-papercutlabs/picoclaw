@@ -2261,11 +2261,14 @@ func TestProcessMessage_CommandOutcomes(t *testing.T) {
 		},
 		Content: "/new",
 	})
-	if newResp != "LLM reply" {
+	// PCL-DOWNSTREAM (cap #9): /new is a local command that clears the
+	// conversation rather than passing through to the LLM. It should return
+	// the confirmation reply and NOT trigger an LLM call.
+	if newResp != "Conversation cleared ✨" {
 		t.Fatalf("unexpected /new reply: %q", newResp)
 	}
-	if provider.calls != 2 {
-		t.Fatalf("LLM should be called for passthrough /new command, calls=%d", provider.calls)
+	if provider.calls != 1 {
+		t.Fatalf("/new should not call LLM, calls=%d", provider.calls)
 	}
 }
 
