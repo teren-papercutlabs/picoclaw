@@ -631,6 +631,26 @@ func (c *TelegramChannel) handleMessage(ctx context.Context, message *telego.Mes
 		return localPath // fallback: use raw path
 	}
 
+	// PCL-DOWNSTREAM: extract forward metadata so the LLM knows the message is forwarded
+	if message.ForwardOrigin != nil {
+		switch origin := message.ForwardOrigin.(type) {
+		case *telego.MessageOriginUser:
+			name := origin.SenderUser.FirstName
+			if origin.SenderUser.LastName != "" {
+				name += " " + origin.SenderUser.LastName
+			}
+			content += fmt.Sprintf("[Forwarded from %s]\n", name)
+		case *telego.MessageOriginHiddenUser:
+			content += fmt.Sprintf("[Forwarded from %s]\n", origin.SenderUserName)
+		case *telego.MessageOriginChat:
+			content += fmt.Sprintf("[Forwarded from %s]\n", origin.SenderChat.Title)
+		case *telego.MessageOriginChannel:
+			content += fmt.Sprintf("[Forwarded from channel %s]\n", origin.Chat.Title)
+		default:
+			content += "[Forwarded message]\n"
+		}
+	}
+
 	if message.Text != "" {
 		content += message.Text
 	}
