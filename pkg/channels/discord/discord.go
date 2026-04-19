@@ -82,6 +82,7 @@ func NewDiscordChannel(
 		channels.WithMaxMessageLength(2000),
 		channels.WithGroupTrigger(bc.GroupTrigger),
 		channels.WithReasoningChannelID(bc.ReasoningChannelID),
+		channels.WithTypingEnabled(bc.Typing.Enabled), // PCL-DOWNSTREAM
 	)
 
 	return &DiscordChannel{

@@ -102,6 +102,7 @@ func NewTelegramChannel(
 		channels.WithMaxMessageLength(4000),
 		channels.WithGroupTrigger(bc.GroupTrigger),
 		channels.WithReasoningChannelID(bc.ReasoningChannelID),
+		channels.WithTypingEnabled(bc.Typing.Enabled), // PCL-DOWNSTREAM
 	)
 
 	return &TelegramChannel{

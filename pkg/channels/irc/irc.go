@@ -38,6 +38,7 @@ func NewIRCChannel(bc *config.Channel, cfg *config.IRCSettings, messageBus *bus.
 		channels.WithMaxMessageLength(400),
 		channels.WithGroupTrigger(bc.GroupTrigger),
 		channels.WithReasoningChannelID(bc.ReasoningChannelID),
+		channels.WithTypingEnabled(bc.Typing.Enabled), // PCL-DOWNSTREAM
 	)
 
 	return &IRCChannel{

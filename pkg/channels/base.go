@@ -75,6 +75,15 @@ func WithReasoningChannelID(id string) BaseChannelOption {
 	return func(c *BaseChannel) { c.reasoningChannelID = id }
 }
 
+// WithTypingEnabled gates the auto-triggered typing indicator in HandleMessage.
+// Default is false (zero value): silent-ingest bots do not flash "is typing" /
+// "Thinking..." bubbles on every inbound message. Pass true for customer-facing
+// bots where typing signals responsiveness.
+// PCL-DOWNSTREAM: typing indicator per-channel gate.
+func WithTypingEnabled(enabled bool) BaseChannelOption {
+	return func(c *BaseChannel) { c.typingEnabled = enabled }
+}
+
 // MessageLengthProvider is an opt-in interface that channels implement
 // to advertise their maximum message length. The Manager uses this via
 // type assertion to decide whether to split outbound messages.
@@ -94,6 +103,7 @@ type BaseChannel struct {
 	placeholderRecorder PlaceholderRecorder
 	owner               Channel // the concrete channel that embeds this BaseChannel
 	reasoningChannelID  string
+	typingEnabled       bool // PCL-DOWNSTREAM: gate the auto-triggered typing indicator
 }
 
 func NewBaseChannel(
@@ -319,10 +329,16 @@ func (c *BaseChannel) HandleMessageWithContext(
 	// and the typing stop will still be called. This avoids the problem of compile-time interface
 	// checks incorrectly skipping indicators when streaming may not work at runtime.
 	if c.owner != nil && c.placeholderRecorder != nil {
-		// Typing
-		if tc, ok := c.owner.(TypingCapable); ok {
-			if stop, err := tc.StartTyping(ctx, deliveryChatID); err == nil {
-				c.placeholderRecorder.RecordTypingStop(c.name, deliveryChatID, stop)
+		// Typing — gated by per-channel config (default OFF).
+		// PCL-DOWNSTREAM: silent-ingest bots (internal pipelines that do not
+		// reply every turn) must not flash "Thinking..." on every inbound
+		// message. Set channels.<name>.typing.enabled = true to re-enable
+		// for customer-facing bots where typing signals responsiveness.
+		if c.typingEnabled {
+			if tc, ok := c.owner.(TypingCapable); ok {
+				if stop, err := tc.StartTyping(ctx, deliveryChatID); err == nil {
+					c.placeholderRecorder.RecordTypingStop(c.name, deliveryChatID, stop)
+				}
 			}
 		}
 		// Reaction
