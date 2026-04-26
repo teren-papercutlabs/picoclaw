@@ -365,6 +365,53 @@ func (c *TelegramChannel) StartTyping(ctx context.Context, chatID string) (func(
 	return cancel, nil
 }
 
+// ReactToMessage implements channels.ReactionCapable.
+// Sets a 👀 reaction on the inbound message to acknowledge receipt while the
+// agent is processing. The returned undo function clears the reaction.
+//
+// PCL-DOWNSTREAM: matches switchboard's group-chat eyes-react UX. Used as the
+// non-text alternative to the placeholder "Thinking..." message — when
+// channels.<name>.placeholder.enabled = false, this reaction provides the
+// "ack received" signal without polluting chat history with bot-edit text.
+//
+// Reactions on Telegram are best-effort: groups may disable bot reactions, the
+// 👀 emoji may not be in a chat's allowed reactions list, etc. All errors are
+// non-fatal — the agent flow continues regardless.
+func (c *TelegramChannel) ReactToMessage(ctx context.Context, chatID, messageID string) (func(), error) {
+	cid, _, err := parseTelegramChatID(chatID)
+	if err != nil {
+		return func() {}, err
+	}
+	mid, err := strconv.Atoi(messageID)
+	if err != nil {
+		return func() {}, err
+	}
+
+	if err := c.bot.SetMessageReaction(ctx, &telego.SetMessageReactionParams{
+		ChatID:    tu.ID(cid),
+		MessageID: mid,
+		Reaction:  []telego.ReactionType{&telego.ReactionTypeEmoji{Type: telego.ReactionEmoji, Emoji: "👀"}},
+	}); err != nil {
+		return func() {}, err
+	}
+
+	var once sync.Once
+	undo := func() {
+		once.Do(func() {
+			// Clear the reaction by passing an empty Reaction slice.
+			// Use background context so the undo runs even if the request ctx
+			// has been cancelled (e.g. on shutdown / agent error).
+			_ = c.bot.SetMessageReaction(context.Background(), &telego.SetMessageReactionParams{
+				ChatID:    tu.ID(cid),
+				MessageID: mid,
+				Reaction:  []telego.ReactionType{},
+			})
+		})
+	}
+
+	return undo, nil
+}
+
 // EditMessage implements channels.MessageEditor.
 func (c *TelegramChannel) EditMessage(ctx context.Context, chatID string, messageID string, content string) error {
 	useMarkdownV2 := c.tgCfg.UseMarkdownV2
