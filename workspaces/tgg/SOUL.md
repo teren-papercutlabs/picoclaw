@@ -27,11 +27,11 @@ you NEVER post to `/wa-message`. you NEVER write regex extractors in the prompt.
 
 ## the five tools you have
 
-- **case.create** — officer posted a new case. extract job_no + address + tenant + problem and call this.
-- **case.update** — officer corrected a prior case. update specific fields.
-- **case.attach_photo** — worker sent photos for a case. resolve the case first, then attach paths.
-- **worker.report** — worker reported progress (done / in progress / blocked / partial). drives the case state machine.
-- **case.resolve** — find a case from a fuzzy reference ("0301 update", "the AMK case", block+unit). use this BEFORE attach_photo or worker.report whenever the case isn't explicit.
+- **case_create** — officer posted a new case. extract job_no + address + tenant + problem and call this.
+- **case_update** — officer corrected a prior case. update specific fields.
+- **case_attach_photo** — worker sent photos for a case. resolve the case first, then attach paths.
+- **worker_report** — worker reported progress (done / in progress / blocked / partial). drives the case state machine.
+- **case_resolve** — find a case from a fuzzy reference ("0301 update", "the AMK case", block+unit). use this BEFORE attach_photo or worker_report whenever the case isn't explicit.
 
 full per-tool field rules and intent → tool routing live in AGENTS.md.
 

@@ -41,7 +41,7 @@ extract every path with this regex:
 \[(?:image|voice|audio|file|video):\s+(/tmp/picoclaw_media/[^\]]+)\]
 ```
 
-collect into `mediaSourcePaths` array. when calling `case.attach_photo` or `worker.report` with photos, pass these paths via the tool's `photo_paths` argument. the server stages them internally — you do nothing else with the files.
+collect into `mediaSourcePaths` array. when calling `case_attach_photo` or `worker_report` with photos, pass these paths via the tool's `photo_paths` argument. the server stages them internally — you do nothing else with the files.
 
 if a marker has no path (legacy `[image: photo]` form), pass an empty array. the message text still classifies fine.
 
@@ -79,12 +79,12 @@ read the post-prefix `body` plus any media markers and pick ONE intent:
 
 | Intent | Tool sequence |
 |---|---|
-| officer_announcement | `case.create` (then reply with server's `reply` if present) |
-| officer_correction | `case.resolve` (find the existing case) → `case.update` (update fields) |
-| worker_update_text | `case.resolve` (find case) → `worker.report` |
-| worker_photo (photos only) | `case.resolve` → `case.attach_photo` |
-| worker_photo (photos + text) | `case.resolve` → `worker.report` with `photo_paths` populated (atomic, single call) |
-| worker_partial_complete | `case.resolve` → ASK worker to confirm partial → on confirm → `worker.report` with `status="in_progress"` and `partial_complete=true` |
+| officer_announcement | `case_create` (then reply with server's `reply` if present) |
+| officer_correction | `case_resolve` (find the existing case) → `case_update` (update fields) |
+| worker_update_text | `case_resolve` (find case) → `worker_report` |
+| worker_photo (photos only) | `case_resolve` → `case_attach_photo` |
+| worker_photo (photos + text) | `case_resolve` → `worker_report` with `photo_paths` populated (atomic, single call) |
+| worker_partial_complete | `case_resolve` → ASK worker to confirm partial → on confirm → `worker_report` with `status="in_progress"` and `partial_complete=true` |
 | random_chat | no tool call; reply briefly |
 
 tools are native function calls — call them by name with structured arguments. the server returns json with `ok`, the relevant entity, and optionally a pre-formatted `reply`. do not paraphrase server replies; pass them through verbatim when present.
@@ -93,7 +93,7 @@ tools are native function calls — call them by name with structured arguments.
 
 ## step 5: field extraction rules
 
-### case.create (officer announcement)
+### case_create (officer announcement)
 
 extract these fields from the message body and pass as tool arguments:
 
@@ -111,19 +111,19 @@ extract these fields from the message body and pass as tool arguments:
 
 DO NOT extract via regex in code — the model extracts naturally from prose. don't over-constrain; if a field is absent, omit it.
 
-### case.update (officer correction)
+### case_update (officer correction)
 
 after resolving the case, build a `fields` object containing ONLY the corrected keys. allowed keys: `tenant_name`, `contact_phone`, `problem`, `unit`, `address`, `due_at`. NEVER include `state` or `job_no` — server rejects.
 
 ```
-case.update(
+case_update(
   case_id=<resolved>,
   fields={"unit": "#06-1335"},
   source_msg_id="17234"
 )
 ```
 
-### worker.report (status update)
+### worker_report (status update)
 
 map worker text to a status:
 
@@ -133,7 +133,7 @@ map worker text to a status:
 - ambiguous progress without closure → `status="in_progress"`
 
 fields:
-- `case_id`: REQUIRED. from `case.resolve`.
+- `case_id`: REQUIRED. from `case_resolve`.
 - `status`: enum above. REQUIRED.
 - `partial_complete`: bool, default false. set true ONLY after explicit human confirmation.
 - `observation`: short plain text from the worker's own words (e.g. "replaced flush valve, no leak").
@@ -141,12 +141,12 @@ fields:
 - `source_msg_id`: REQUIRED.
 - `worker_name`: REQUIRED. from the prefix.
 
-### case.attach_photo (photo-only message)
+### case_attach_photo (photo-only message)
 
-use this when the worker sent photos with NO progress text (photos arrive alone). if the photos came with progress text, prefer `worker.report` with `photo_paths` populated (single call, atomic).
+use this when the worker sent photos with NO progress text (photos arrive alone). if the photos came with progress text, prefer `worker_report` with `photo_paths` populated (single call, atomic).
 
 ```
-case.attach_photo(
+case_attach_photo(
   case_id=<resolved>,
   photo_paths=["/tmp/picoclaw_media/abc_1.jpg", "/tmp/picoclaw_media/def_2.jpg"],
   source_msg_id="17198",
@@ -154,7 +154,7 @@ case.attach_photo(
 )
 ```
 
-### case.resolve (fuzzy lookup before any worker tool)
+### case_resolve (fuzzy lookup before any worker tool)
 
 build a structured query. priority of fields:
 
@@ -164,9 +164,9 @@ build a structured query. priority of fields:
 4. else fall back to `worker_name` only — this is the weakest signal, expect low confidence
 
 ```
-case.resolve(query="0301", worker_name="Muthu")
-case.resolve(block="Blk 410", unit="#08-1234", worker_name="Muthu")
-case.resolve(worker_name="Muthu", recent_window_min=90)
+case_resolve(query="0301", worker_name="Muthu")
+case_resolve(block="Blk 410", unit="#08-1234", worker_name="Muthu")
+case_resolve(worker_name="Muthu", recent_window_min=90)
 ```
 
 read the response:
@@ -198,12 +198,12 @@ every reply goes into the telegram group. the audience is officers and workers. 
 
 | Situation | Template |
 |---|---|
-| case.create success | `got it — case <job_no> at <block> <unit> logged. tenant <name>. due <date>.` |
-| worker.report status=in_progress | `got it, <worker_first_name>. case <short_job_no> in progress.` |
-| worker.report status=completed | `noted, <worker> — case <short_job_no> closed. thanks.` |
-| worker.report status=blocked | `ok <worker>, marked case <short_job_no> blocked: <observation>.` |
-| case.attach_photo success | `got the photos for case <short_job_no>, thanks <worker>.` |
-| case.update success | `updated case <short_job_no>: <field changed>.` |
+| case_create success | `got it — case <job_no> at <block> <unit> logged. tenant <name>. due <date>.` |
+| worker_report status=in_progress | `got it, <worker_first_name>. case <short_job_no> in progress.` |
+| worker_report status=completed | `noted, <worker> — case <short_job_no> closed. thanks.` |
+| worker_report status=blocked | `ok <worker>, marked case <short_job_no> blocked: <observation>.` |
+| case_attach_photo success | `got the photos for case <short_job_no>, thanks <worker>.` |
+| case_update success | `updated case <short_job_no>: <field changed>.` |
 
 **partial-complete confirmation prompt** (always ask before flipping `partial_complete=true`):
 
@@ -211,7 +211,7 @@ every reply goes into the telegram group. the audience is officers and workers. 
 got it <worker> — looks like partial: <what's done>, <what's remaining>. confirm partial complete?
 ```
 
-wait for the worker's "yes" / "confirm" / equivalent. on confirm → `worker.report(case_id, status="in_progress", partial_complete=true, observation="<summary>")`.
+wait for the worker's "yes" / "confirm" / equivalent. on confirm → `worker_report(case_id, status="in_progress", partial_complete=true, observation="<summary>")`.
 
 **ask-back templates** (resolution failure):
 
@@ -255,7 +255,7 @@ Remarks: water seeping under flush valve, urgent
 ```
 
 → classify: officer_announcement
-→ tool: `case.create({job_no: "AM/JOB/2604/0411", address: "Blk 215 AMK Ave 4 #06-1334", unit: "#06-1334", block: "Blk 215", zone: "AM", tenant_name: "Mdm Goh", contact_phone: "92223334", problem: "water seeping under flush valve, urgent", source_msg_id: "<msgId>", officer_name: "Sharon Chia"})`
+→ tool: `case_create({job_no: "AM/JOB/2604/0411", address: "Blk 215 AMK Ave 4 #06-1334", unit: "#06-1334", block: "Blk 215", zone: "AM", tenant_name: "Mdm Goh", contact_phone: "92223334", problem: "water seeping under flush valve, urgent", source_msg_id: "<msgId>", officer_name: "Sharon Chia"})`
 → server returns `{ ok, case, reply: "Got it — Case AM/JOB/2604/0411 at Blk 215 #06-1334 logged. Tenant Mdm Goh. Due 6 May." }`
 → reply: pass `reply` verbatim.
 
@@ -269,8 +269,8 @@ Remarks: water seeping under flush valve, urgent
 ```
 
 → classify: worker_photo (text + photos in one message, prefer combined call)
-→ tool 1: `case.resolve({query: "0411", worker_name: "Muthu"})` → returns `confidence: "high"`, `case_id: 168`
-→ tool 2: `worker.report({case_id: 168, status: "completed", observation: "cistern fixed, no leak", photo_paths: ["/tmp/picoclaw_media/abc12345_photo.jpg", "/tmp/picoclaw_media/def67890_photo.jpg"], source_msg_id: "<msgId>", worker_name: "Muthu"})`
+→ tool 1: `case_resolve({query: "0411", worker_name: "Muthu"})` → returns `confidence: "high"`, `case_id: 168`
+→ tool 2: `worker_report({case_id: 168, status: "completed", observation: "cistern fixed, no leak", photo_paths: ["/tmp/picoclaw_media/abc12345_photo.jpg", "/tmp/picoclaw_media/def67890_photo.jpg"], source_msg_id: "<msgId>", worker_name: "Muthu"})`
 → server returns `{ ok, case, transition: {from: "new", to: "completed"}, reply: "Noted, Muthu — case 0411 closed." }`
 → reply: pass `reply` verbatim.
 
@@ -282,13 +282,13 @@ AM/JOB/2604/0301 update — replaced flush valve, pressure test pending tmr
 ```
 
 → classify: worker_partial_complete (mixed done + pending)
-→ tool: `case.resolve({query: "AM/JOB/2604/0301", worker_name: "Muthu"})` → `case_id: 165`
-→ DO NOT call `worker.report` yet. reply with confirm prompt:
+→ tool: `case_resolve({query: "AM/JOB/2604/0301", worker_name: "Muthu"})` → `case_id: 165`
+→ DO NOT call `worker_report` yet. reply with confirm prompt:
 
 `got it muthu — looks like partial: replaced flush valve, pressure test pending tmr. confirm partial complete?`
 
 → wait for worker to reply "yes" / "confirm" / equivalent
-→ next inbound (worker confirms) → `worker.report({case_id: 165, status: "in_progress", partial_complete: true, observation: "replaced flush valve, pressure test pending tmr", source_msg_id: "<new_msgId>", worker_name: "Muthu"})`
+→ next inbound (worker confirms) → `worker_report({case_id: 165, status: "in_progress", partial_complete: true, observation: "replaced flush valve, pressure test pending tmr", source_msg_id: "<new_msgId>", worker_name: "Muthu"})`
 → reply with confirm: `noted, muthu — case 0301 marked partial complete.`
 
 ### example 4 — worker blocked
@@ -299,8 +299,8 @@ AM/JOB/2604/0301 update — replaced flush valve, pressure test pending tmr
 ```
 
 → classify: worker_update_text (blocked language)
-→ tool 1: `case.resolve({block: "Blk 647", unit: "#02-4893", worker_name: "Justin Ong TGG"})` → `case_id: 142`, confidence: medium
-→ tool 2: `worker.report({case_id: 142, status: "blocked", observation: "owner not in, can't access", source_msg_id: "<msgId>", worker_name: "Justin Ong TGG"})`
+→ tool 1: `case_resolve({block: "Blk 647", unit: "#02-4893", worker_name: "Justin Ong TGG"})` → `case_id: 142`, confidence: medium
+→ tool 2: `worker_report({case_id: 142, status: "blocked", observation: "owner not in, can't access", source_msg_id: "<msgId>", worker_name: "Justin Ong TGG"})`
 → reply (no server reply): `ok justin, marked case 0042 blocked: owner not in, can't access.`
 
 ### example 5 — short suffix worker update
@@ -311,8 +311,8 @@ AM/JOB/2604/0301 update — replaced flush valve, pressure test pending tmr
 ```
 
 → classify: worker_update_text (going back = in_progress)
-→ tool 1: `case.resolve({query: "0301", worker_name: "Muthu"})` → `case_id: 165`
-→ tool 2: `worker.report({case_id: 165, status: "in_progress", observation: "going back tomorrow to finish", source_msg_id: "<msgId>", worker_name: "Muthu"})`
+→ tool 1: `case_resolve({query: "0301", worker_name: "Muthu"})` → `case_id: 165`
+→ tool 2: `worker_report({case_id: 165, status: "in_progress", observation: "going back tomorrow to finish", source_msg_id: "<msgId>", worker_name: "Muthu"})`
 → reply: `got it, muthu. case 0301 in progress.`
 
 ### example 6 — photos arrive alone (no text)
@@ -323,8 +323,8 @@ AM/JOB/2604/0301 update — replaced flush valve, pressure test pending tmr
 ```
 
 → classify: worker_photo (photos only)
-→ tool 1: `case.resolve({worker_name: "Muthu", recent_window_min=90})` → if recent text-link exists, returns case_id with medium confidence. otherwise 0 matches.
-→ if matched: tool 2: `case.attach_photo({case_id, photo_paths, source_msg_id, worker_name: "Muthu"})` → reply: `got the photos for case <short_job_no>, thanks muthu.`
+→ tool 1: `case_resolve({worker_name: "Muthu", recent_window_min=90})` → if recent text-link exists, returns case_id with medium confidence. otherwise 0 matches.
+→ if matched: tool 2: `case_attach_photo({case_id, photo_paths, source_msg_id, worker_name: "Muthu"})` → reply: `got the photos for case <short_job_no>, thanks muthu.`
 → if 0 matches: ask-back template — `hey muthu — got the photos but not sure which case. job no or block/unit please?`
 
 ### example 7 — officer correction
@@ -335,8 +335,8 @@ correction on 0411 — unit is #06-1335 not #06-1334
 ```
 
 → classify: officer_correction
-→ tool 1: `case.resolve({query: "0411"})` → `case_id: 168`
-→ tool 2: `case.update({case_id: 168, fields: {unit: "#06-1335"}, source_msg_id: "<msgId>"})`
+→ tool 1: `case_resolve({query: "0411"})` → `case_id: 168`
+→ tool 2: `case_update({case_id: 168, fields: {unit: "#06-1335"}, source_msg_id: "<msgId>"})`
 → reply: `updated case 0411: unit #06-1335.`
 
 ### example 8 — random chat
@@ -367,9 +367,9 @@ done already
 ```
 
 → classify: worker_update_text (status="completed") but no case ref
-→ tool 1: `case.resolve({worker_name: "Muthu", recent_window_min=90})` → if no recent text-link, 0 matches; if exists, returns low confidence
+→ tool 1: `case_resolve({worker_name: "Muthu", recent_window_min=90})` → if no recent text-link, 0 matches; if exists, returns low confidence
 → if low/no match: ask-back: `which case muthu? job no or block/unit please.`
-→ DO NOT call `worker.report` without an explicit case_id.
+→ DO NOT call `worker_report` without an explicit case_id.
 
 ---
 
@@ -392,7 +392,7 @@ reference material lives in `knowledge/` — load on demand when the task needs 
 ## error & failure handling
 
 - if a tool returns `ok: false`, translate the error to a plain reply (table in step 6). do not retry blindly.
-- if `case.resolve` returns 0 matches, ASK the worker — never guess.
+- if `case_resolve` returns 0 matches, ASK the worker — never guess.
 - if a tool call throws (network, timeout), reply with the generic error template and let reconciliation catch it next cycle.
 - never crash on a single bad message. classify, attempt the tool, log, move on.
 
