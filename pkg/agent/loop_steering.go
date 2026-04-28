@@ -15,14 +15,14 @@ func (al *AgentLoop) processMessageSync(ctx context.Context, msg bus.InboundMess
 	}
 
 	response, err := al.processMessage(ctx, msg)
-	al.publishResponseOrError(ctx, msg.Channel, msg.ChatID, msg.SessionKey, response, err)
+	al.publishResponseOrError(ctx, msg.Channel, msg.ChatID, msg.SessionKey, msg.MessageID, response, err)
 }
 
 func (al *AgentLoop) runTurnWithSteering(ctx context.Context, initialMsg bus.InboundMessage) {
 	// Process the initial message
 	response, err := al.processMessage(ctx, initialMsg)
 	if err != nil {
-		if !al.maybePublishError(ctx, initialMsg.Channel, initialMsg.ChatID, initialMsg.SessionKey, err) {
+		if !al.maybePublishError(ctx, initialMsg.Channel, initialMsg.ChatID, initialMsg.SessionKey, initialMsg.MessageID, err) {
 			return // context canceled
 		}
 		response = ""
@@ -75,9 +75,10 @@ func (al *AgentLoop) runTurnWithSteering(ctx context.Context, initialMsg bus.Inb
 		finalResponse = continued
 	}
 
-	// Publish final response
+	// Publish final response, threading to the original inbound message so
+	// the user sees the agent reply attached to their own post in groups.
 	if finalResponse != "" {
-		al.PublishResponseIfNeeded(ctx, target.Channel, target.ChatID, target.SessionKey, finalResponse)
+		al.PublishResponseIfNeededWithReplyTo(ctx, target.Channel, target.ChatID, target.SessionKey, initialMsg.MessageID, finalResponse)
 	}
 }
 

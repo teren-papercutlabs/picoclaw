@@ -13,30 +13,52 @@ import (
 	"github.com/teren-papercutlabs/pclaw/pkg/tools"
 )
 
-func (al *AgentLoop) maybePublishError(ctx context.Context, channel, chatID, sessionKey string, err error) bool {
+func (al *AgentLoop) maybePublishError(ctx context.Context, channel, chatID, sessionKey, replyToMessageID string, err error) bool {
 	if errors.Is(err, context.Canceled) {
 		return false
 	}
-	al.PublishResponseIfNeeded(ctx, channel, chatID, sessionKey, fmt.Sprintf("Error processing message: %v", err))
+	al.publishResponseIfNeededInternal(ctx, channel, chatID, sessionKey, replyToMessageID, fmt.Sprintf("Error processing message: %v", err))
 	return true
 }
 
 func (al *AgentLoop) publishResponseOrError(
 	ctx context.Context,
-	channel, chatID, sessionKey string,
+	channel, chatID, sessionKey, replyToMessageID string,
 	response string,
 	err error,
 ) {
 	if err != nil {
-		if !al.maybePublishError(ctx, channel, chatID, sessionKey, err) {
+		if !al.maybePublishError(ctx, channel, chatID, sessionKey, replyToMessageID, err) {
 			return
 		}
 		response = ""
 	}
-	al.PublishResponseIfNeeded(ctx, channel, chatID, sessionKey, response)
+	al.publishResponseIfNeededInternal(ctx, channel, chatID, sessionKey, replyToMessageID, response)
 }
 
+// PublishResponseIfNeeded is the legacy entry point retained for the
+// JobExecutor interface (cron, async fanout) that does not have an inbound
+// message ID to thread to. Calls into the new internal publisher with no
+// reply target.
 func (al *AgentLoop) PublishResponseIfNeeded(ctx context.Context, channel, chatID, sessionKey, response string) {
+	al.publishResponseIfNeededInternal(ctx, channel, chatID, sessionKey, "", response)
+}
+
+// PublishResponseIfNeededWithReplyTo publishes an agent reply, threading it
+// to the inbound message ID when present. Used by the per-message agent loop
+// so replies thread to the user's source message in group chats — matches
+// the natural Telegram conversational pattern.
+func (al *AgentLoop) PublishResponseIfNeededWithReplyTo(
+	ctx context.Context,
+	channel, chatID, sessionKey, replyToMessageID, response string,
+) {
+	al.publishResponseIfNeededInternal(ctx, channel, chatID, sessionKey, replyToMessageID, response)
+}
+
+func (al *AgentLoop) publishResponseIfNeededInternal(
+	ctx context.Context,
+	channel, chatID, sessionKey, replyToMessageID, response string,
+) {
 	if response == "" {
 		return
 	}
@@ -61,14 +83,16 @@ func (al *AgentLoop) PublishResponseIfNeeded(ctx context.Context, channel, chatI
 	}
 
 	al.bus.PublishOutbound(ctx, bus.OutboundMessage{
-		Context: bus.NewOutboundContext(channel, chatID, ""),
-		Content: response,
+		Context:          bus.NewOutboundContext(channel, chatID, replyToMessageID),
+		Content:          response,
+		ReplyToMessageID: replyToMessageID,
 	})
 	logger.InfoCF("agent", "Published outbound response",
 		map[string]any{
-			"channel":     channel,
-			"chat_id":     chatID,
-			"content_len": len(response),
+			"channel":             channel,
+			"chat_id":             chatID,
+			"content_len":         len(response),
+			"reply_to_message_id": replyToMessageID,
 		})
 }
 
