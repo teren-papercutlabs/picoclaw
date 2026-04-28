@@ -718,7 +718,13 @@ func (c *TelegramChannel) handleMessage(ctx context.Context, message *telego.Mes
 			if content != "" {
 				content += "\n"
 			}
-			content += "[image: photo]"
+			// PCL-DOWNSTREAM (fix/tgg-photo-persistence): inject the actual
+			// filesystem path into the marker so downstream agents can stage
+			// or forward the file by exact path. The legacy "[image: photo]"
+			// marker forced agents to do an unreliable "ls -t /tmp/picoclaw_media/"
+			// discovery which races against media_cleanup and concurrent
+			// stage-media moves on bursty multi-photo messages.
+			content += fmt.Sprintf("[image: %s]", photoPath)
 		}
 	}
 
@@ -730,7 +736,9 @@ func (c *TelegramChannel) handleMessage(ctx context.Context, message *telego.Mes
 			if content != "" {
 				content += "\n"
 			}
-			content += "[voice]"
+			// PCL-DOWNSTREAM: include filesystem path in marker (same rationale
+			// as photo above).
+			content += fmt.Sprintf("[voice: %s]", voicePath)
 		}
 	}
 
@@ -741,7 +749,8 @@ func (c *TelegramChannel) handleMessage(ctx context.Context, message *telego.Mes
 			if content != "" {
 				content += "\n"
 			}
-			content += "[audio]"
+			// PCL-DOWNSTREAM: include filesystem path in marker.
+			content += fmt.Sprintf("[audio: %s]", audioPath)
 		}
 	}
 
@@ -752,7 +761,8 @@ func (c *TelegramChannel) handleMessage(ctx context.Context, message *telego.Mes
 			if content != "" {
 				content += "\n"
 			}
-			content += "[file]"
+			// PCL-DOWNSTREAM: include filesystem path in marker.
+			content += fmt.Sprintf("[file: %s]", docPath)
 		}
 	}
 
