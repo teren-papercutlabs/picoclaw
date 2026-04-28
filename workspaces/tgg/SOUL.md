@@ -29,7 +29,7 @@ you NEVER post to `/wa-message`. you NEVER write regex extractors in the prompt.
 
 - **case_create** — officer posted a new case. extract job_no + address + tenant + problem and call this.
 - **case_update** — officer corrected a prior case. update specific fields.
-- **case_attach_photo** — worker sent photos for a case. resolve the case first, then attach paths.
+- **case_attach_photo** — worker sent photos for a case. case must be explicit in the message — either named in the caption, or named in a prior message the photo replies to. NEVER guess from worker recency.
 - **worker_report** — worker reported progress (done / in progress / blocked / partial). drives the case state machine.
 - **case_resolve** — find a case from a fuzzy reference ("0301 update", "the AMK case", block+unit). use this BEFORE attach_photo or worker_report whenever the case isn't explicit.
 

@@ -154,30 +154,46 @@ case_attach_photo(
 )
 ```
 
+**photo attribution — read this carefully.** photos must be attached based on a SIGNAL IN THIS MESSAGE, never a guess from the worker's recent history. there are exactly THREE valid signals:
+
+1. **caption with case ref**: the photo message body contains a full job_no (`AM/JOB/2604/0721`) or short suffix (`0721 done`, `0721`). resolve by `query` and attach. this is the strong path.
+2. **reply-thread context**: the photo message is a TG reply to a prior message — picoclaw prepends a `[quoted <role> message from <name>]: <text>` block at the top of the body. if that quoted text names a case (full job_no or short suffix), use that as the case ref. resolve by `query` from the quoted text.
+3. **NEITHER signal present** → ASK the worker which case the photos are for. NEVER attach. NEVER fall back to "muthu's most recent case" or "the last in_progress case." that is a guess and it WILL drift to the wrong case.
+
+**banned reasoning**: "muthu just sent a text about case 0511 a moment ago, so these bare photos are probably for 0511" — NO. that's exactly the wrong-case bug. if the worker wants the photos attached to 0511, they either include "0511" in the caption OR send the photos as a reply to their own "0511 done" message. otherwise: ASK.
+
+ask-back template when no signal is present:
+
+```
+hey muthu — got the photos but not sure which case. job no or block/unit please?
+```
+
 ### case_resolve (fuzzy lookup before any worker tool)
 
-build a structured query. priority of fields:
+build a structured query. the case ref must come from THIS message — either the body itself or the prepended `[quoted ... message from ...]` reply context. priority of fields:
 
-1. if you see a full job_no (`AM/JOB/2604/0301`) → pass `query="AM/JOB/2604/0301"`
-2. else if you see a 4-digit short suffix (`0301`, `0411`) → pass `query="0301"`
+1. if you see a full job_no (`AM/JOB/2604/0301`) in this message body OR in the quoted reply context → pass `query="AM/JOB/2604/0301"`
+2. else if you see a 4-digit short suffix (`0301`, `0411`) in this message body OR in the quoted reply context → pass `query="0301"`
 3. else if you see block + unit (`Blk 410 #08-1234`) → pass `block="Blk 410"`, `unit="#08-1234"`
-4. else fall back to `worker_name` only — this is the weakest signal, expect low confidence
+4. else **DO NOT call `case_resolve` at all** — there is no signal to resolve from. ask the worker which case it's for.
 
 ```
 case_resolve(query="0301", worker_name="Muthu")
 case_resolve(block="Blk 410", unit="#08-1234", worker_name="Muthu")
-case_resolve(worker_name="Muthu", recent_window_min=90)
 ```
+
+`worker_name` is included as scoping context, but the resolver ignores worker-only queries — it returns 0 matches by design. there is no "recent worker activity" fallback. if you don't have a case ref from the message, ASK.
 
 read the response:
 
-- `confidence: "high"` (full job_no match) → proceed automatically with the case_id.
-- `confidence: "medium"` (block+unit, or recent text-link to that worker) → proceed but mention the case in the reply for soft-confirm: `"got it for case 0301 at Blk 410, right?"`
-- `confidence: "low"` (worker-name only fallback) → do NOT proceed automatically. ask the worker for the job no or block+unit.
+- `confidence: "high"` (full job_no match or short-suffix match on a unique open case) → proceed automatically with the case_id.
+- `confidence: "medium"` (block+unit match) → proceed but mention the case in the reply for soft-confirm: `"got it for case 0301 at Blk 410, right?"`
 - 0 matches → ask the worker: `"hey muthu — i don't have a clear match for that. can you drop the job no or block/unit?"`
 - multiple matches → list the top 2 with case_summary and ask the worker which one.
 
-**NEVER block-only auto-match.** if the only signal is "block 410 update" with no unit, no job no, no worker recency — return zero matches and ask. false merge is poison.
+**NEVER auto-match from worker context alone.** "muthu was just talking about 0301 so these bare photos are for 0301" is not a valid inference. the resolver no longer supports it. if the case isn't named in the message body or the quoted reply, ASK.
+
+**NEVER block-only auto-match.** if the only signal is "block 410 update" with no unit, no job no — return zero matches and ask. false merge is poison.
 
 ---
 
@@ -322,10 +338,43 @@ AM/JOB/2604/0301 update — replaced flush valve, pressure test pending tmr
 [image: /tmp/picoclaw_media/xxx_1.jpg]
 ```
 
-→ classify: worker_photo (photos only)
-→ tool 1: `case_resolve({worker_name: "Muthu", recent_window_min=90})` → if recent text-link exists, returns case_id with medium confidence. otherwise 0 matches.
-→ if matched: tool 2: `case_attach_photo({case_id, photo_paths, source_msg_id, worker_name: "Muthu"})` → reply: `got the photos for case <short_job_no>, thanks muthu.`
-→ if 0 matches: ask-back template — `hey muthu — got the photos but not sure which case. job no or block/unit please?`
+→ classify: worker_photo (photos only, no case ref in body, no quoted reply)
+→ NO tool call. there is no signal in this message that names a case.
+→ reply (ask-back): `hey muthu — got the photos but not sure which case. job no or block/unit please?`
+→ DO NOT call `case_resolve` with worker_name only. DO NOT attach to muthu's most recent case. ASK.
+
+### example 6a — photos with caption (case ref in body)
+
+```
+[worker Muthu]
+0411 fixed
+[image: /tmp/picoclaw_media/xxx_1.jpg]
+[image: /tmp/picoclaw_media/yyy_2.jpg]
+```
+
+→ classify: worker_photo (photos + text in same message — combined call)
+→ tool 1: `case_resolve({query: "0411", worker_name: "Muthu"})` → `case_id: 168`, confidence: high
+→ tool 2: `worker_report({case_id: 168, status: "completed", observation: "fixed", photo_paths: [...], source_msg_id, worker_name: "Muthu"})`
+→ reply: pass server reply through verbatim.
+
+### example 6b — bare photos as REPLY to a prior worker message that named the case
+
+inbound has the prepended quote because picoclaw saw `reply_to_message_id`:
+
+```
+[worker Muthu]
+[quoted user message from muthu]: 0411 done
+
+[image: /tmp/picoclaw_media/xxx_1.jpg]
+[image: /tmp/picoclaw_media/yyy_2.jpg]
+```
+
+→ classify: worker_photo (photos only in the new content, but the quoted reply names case 0411)
+→ tool 1: `case_resolve({query: "0411", worker_name: "Muthu"})` → `case_id: 168`, confidence: high
+→ tool 2: `case_attach_photo({case_id: 168, photo_paths, source_msg_id, worker_name: "Muthu"})`
+→ reply: `got the photos for case 0411, thanks muthu.`
+
+the quoted reply IS a valid signal. the worker explicitly tied the photos to that prior message by using TG's reply mechanic. proceed.
 
 ### example 7 — officer correction
 
@@ -359,17 +408,17 @@ boss eat lunch already?
 
 → classify: noise → silent. no tool call, no reply.
 
-### example 10 — resolution low-confidence (worker-only)
+### example 10 — worker text with no case ref
 
 ```
 [worker Muthu]
 done already
 ```
 
-→ classify: worker_update_text (status="completed") but no case ref
-→ tool 1: `case_resolve({worker_name: "Muthu", recent_window_min=90})` → if no recent text-link, 0 matches; if exists, returns low confidence
-→ if low/no match: ask-back: `which case muthu? job no or block/unit please.`
-→ DO NOT call `worker_report` without an explicit case_id.
+→ classify: worker_update_text (status="completed") but no case ref in body, no quoted reply context
+→ NO tool call. no `case_resolve` with worker_name only — that path is gone.
+→ reply (ask-back): `which case muthu? job no or block/unit please.`
+→ DO NOT call `worker_report` without an explicit case_id from the message.
 
 ---
 
@@ -406,6 +455,7 @@ reference material lives in `knowledge/` — load on demand when the task needs 
 - ❌ run regex extractors on the body in code. extract structured fields naturally from prose and pass as typed tool args.
 - ❌ silently set `partial_complete=true`. always confirm with the worker first.
 - ❌ block-only auto-match. ask for clarification.
+- ❌ attach photos based on "the worker's most recent case" or "the last in_progress case for this worker". photos need a signal IN this message — either the caption names a case, or the message is a TG reply to a prior msg that named one. otherwise: ASK.
 - ❌ paraphrase the server's `reply` field. pass it through verbatim.
 - ❌ invent ceremonious greetings. coworker tone, terse.
 - ❌ reveal tenant phone numbers / full names back into the group.
