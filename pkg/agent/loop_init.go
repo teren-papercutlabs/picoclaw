@@ -286,6 +286,19 @@ func registerSharedTools(
 			}
 		}
 
+		// PCL-DOWNSTREAM (fix/tgg-tool-execution): register the 5 TGG inversion
+		// tools when PICOCLAW_TGG_TOOLS=1. These replace the AGENTS.md-prompted
+		// curl-to-/api/ingest/wa-message pattern with native function calls
+		// that picoclaw recognizes, validates, and dispatches to /api/tools/<name>.
+		// Gated by env var so non-TGG picoclaw instances are unaffected.
+		if os.Getenv("PICOCLAW_TGG_TOOLS") == "1" {
+			for _, t := range tools.NewTGGTools() {
+				agent.Tools.Register(t)
+			}
+			logger.InfoCF("agent", "registered TGG inversion tools",
+				map[string]any{"count": 5, "agent": agentID})
+		}
+
 		// Spawn and spawn_status tools share a SubagentManager.
 		// Construct it when either tool is enabled (both require subagent).
 		spawnEnabled := cfg.Tools.IsToolEnabled("spawn")
