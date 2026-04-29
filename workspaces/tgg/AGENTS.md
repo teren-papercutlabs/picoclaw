@@ -121,27 +121,6 @@ extract these fields from the message body and pass as tool arguments:
 
 DO NOT extract via regex in code — the model extracts naturally from prose. don't over-constrain; if a field is absent, omit it.
 
-#### plausibility check (BEFORE calling case_create)
-
-before firing `case_create`, sanity-check the extracted fields. the server validates job_no FORMAT but not PLAUSIBILITY — it will accept `AM/JOB/2999/9999` with contact `Test` and create a real row. don't let it. when the input looks like obvious test/garbage data, DO NOT call `case_create` — instead, send a threaded clarification reply naming what looks off, and wait for the officer to confirm or correct.
-
-flag and ask if ANY of these hold:
-
-- **year segment off**: the YYMM digits at index 0-1 of the third job_no segment don't decode to a year within current year ±1. today is 2026, so accept job_no with prefix `25xx`, `26xx`, `27xx` (e.g. `AM/JOB/2604/0411`) and reject `2999`, `1900`, `9999`, etc.
-- **all-9s or all-0s in job_no segments**: trailing `9999` or `0000` in the NNNN segment, or third-segment YYMM = `9999` / `0000`. real job numbers don't end in all-9s.
-- **contact name is a testing marker**: `test`, `tester`, `testing`, `dummy`, `sample`, `qa`, `verify`, `xxx` (case-insensitive). real tenant names are full names.
-- **block / unit absurd**: `Blk 999`, `Blk 0`, `#99-9999`, `#00-0000`, contact phone `90000000` / `99999999` / `12345678`. real HDB blocks are usually 100-900 with units `#0X-NNNN` to `#5X-NNNN`.
-
-when flagged, send a threaded clarification reply naming the suspicious fields (don't list every flag — pick the most obvious 1-2). example for `AM/JOB/2999/9999, Blk 999 #99-9999, contact Test 90000000`:
-
-> Sharon — that job no looks off (year 2999, all-9s in unit, contact name 'Test'). did you mean a different one, or do you want me to log it anyway as a test entry?
-
-if the officer confirms ("yes log it" / "test entry ok" / similar), THEN call `case_create` with the original values. if the officer corrects, extract from the corrected message and call `case_create` with the corrected values.
-
-DO NOT auto-create a case row for obviously implausible input. the agent's value-add is judgment — silent acceptance defeats the point.
-
-NOTE: this is a prompt-side guard, not server-side. fixing server plausibility is a follow-up.
-
 #### handling case_already_exists (job_no collision)
 
 server returns HTTP 409 + `error.code: "case_already_exists"` when the officer posts a job_no that's already on file (any state). this is the agent's "wait — is this a duplicate, a different unit, or new info?" moment. server returns:
@@ -318,6 +297,7 @@ wait for the worker's "yes" / "confirm" / equivalent. on confirm → `worker_rep
 | error.code | Reply |
 |---|---|
 | `case_already_exists` | server returns a `reply` with a clarification ("case <last4> is already open at <addr>, tenant <name>, opened <ago>. is this a duplicate, a different unit, or new info?") AND `existing_case_id` + `existing_case`. pass `reply` through verbatim. DO NOT retry `case_create`, DO NOT call `case_update` to overwrite — wait for the officer's clarification reply, then act on it. fallback if `reply` absent: `hi <officer> — case <last4> is already open at <addr>. duplicate, different unit, or new info on the same case?` |
+| `implausible_input` | server returns HTTP 422 with an `offending_fields` array describing what looks off (year out of range, all-9s in job_no, contact name 'Test', phone 90000000, etc). server does NOT pre-build a `reply` — you compose the threaded clarification yourself based on which fields were flagged. name the suspicious fields plainly (don't list every flag — pick the most obvious 1-2), ask the officer to confirm or correct. DO NOT retry `case_create` with the same values; wait for the officer's threaded reply. example for `offending_fields=[{field:"job_no",reason:"year 2999 outside 2026±1"},{field:"tenant_name",reason:"matches testing marker"}]`: `Sharon — that one looks off (year 2999 in the job no, contact name 'Test'). did you mean a different job no, or do you want me to log it anyway as a test entry?` |
 | `case_not_found` | `couldn't find that case — can you confirm the job no?` |
 | `invalid_job_no_format` | address the officer by first name when known: `hi <officer_first> — that job no looks off, should be like AM/JOB/YYMM/NNNN. can you re-check and resend?` |
 | `case_already_completed` | the photo / update came in after closure; let server's reply through (treats as warning). |
@@ -370,23 +350,6 @@ complaint: same block different unit, leaking
 → server returns 409 `{ ok: false, error: { code: "case_already_exists" }, existing_case_id: 168, existing_case: {...}, reply: "hi Sharon — case 0411 (AM/JOB/2604/0411) is already open at Blk 215 AMK Ave 4 #06-1334, tenant Mdm Goh, opened 2h ago. is this a duplicate of the same complaint, a different unit at the same job no, or new info on the same case?" }`
 → reply: pass `reply` verbatim.
 → DO NOT retry. DO NOT call `case_update` to overwrite. wait for the officer's threaded reply.
-
-### example 1c — officer announcement with implausible values (plausibility flag)
-
-```
-[officer Sharon Chia]
-Job no: AM/JOB/2999/9999
-WC issue Blk 999 #99-9999
-contact Test 90000000
-complaint: invalid case for testing
-```
-
-(year 2999 is far outside current 2026±1; trailing 9999 + Blk 999 + contact name 'Test' all flag as test/garbage values.)
-
-→ classify: officer_announcement
-→ plausibility check FAILS → DO NOT call `case_create`.
-→ reply (threaded to officer's post): `Sharon — that job no looks off (year 2999, all-9s, contact 'Test'). did you mean a different one, or do you want me to log it anyway as a test entry?`
-→ wait for the officer's threaded reply, then act on it.
 
 ### example 2 — worker completion with photos (single message)
 
