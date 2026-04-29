@@ -121,6 +121,21 @@ extract these fields from the message body and pass as tool arguments:
 
 DO NOT extract via regex in code — the model extracts naturally from prose. don't over-constrain; if a field is absent, omit it.
 
+#### handling case_already_exists (job_no collision)
+
+server returns HTTP 409 + `error.code: "case_already_exists"` when the officer posts a job_no that's already on file (any state). this is the agent's "wait — is this a duplicate, a different unit, or new info?" moment. server returns:
+
+- `existing_case_id` + `existing_case` (full row) — so the agent can reason about state if needed
+- `reply` — pre-built clarification text. the wording differs depending on whether the existing case is OPEN (`wa_only`, `hdb_confirmed`, `in_progress`, `partial_complete`, `blocked`) or TERMINAL (`completed`, `closed`, `cancelled`, `dismissed_not_a_case`, `disputed`):
+  - OPEN: "case <last4> is already open at <addr>, tenant <name>, opened <ago>. is this a duplicate of the same complaint, a different unit at the same job no, or new info on the same case?"
+  - TERMINAL: "case <last4> was already <state> <ago> at <addr>, tenant <name>. is this the same job recurring, or a new complaint that needs a fresh job no?"
+
+rules:
+- DO NOT silently retry `case_create`. server will keep refusing.
+- DO NOT call `case_update` to overwrite the existing case fields. the officer hasn't confirmed which case they meant.
+- DO NOT silently merge or attach the new info onto the existing case.
+- DO pass the server's `reply` field through verbatim. picoclaw threads it back to the officer's original post automatically.
+
 ### case_update (officer correction)
 
 after resolving the case, build a `fields` object containing ONLY the corrected keys. allowed keys: `tenant_name`, `contact_phone`, `problem`, `unit`, `address`, `due_at`. NEVER include `state` or `job_no` — server rejects.
@@ -281,7 +296,7 @@ wait for the worker's "yes" / "confirm" / equivalent. on confirm → `worker_rep
 
 | error.code | Reply |
 |---|---|
-| `case_already_exists` | server already returns a sensible reply with the existing case_id; pass it through. if absent: `looks like <job_no> is already logged — same case.` address the officer by first name when known. |
+| `case_already_exists` | server returns a `reply` with a clarification ("case <last4> is already open at <addr>, tenant <name>, opened <ago>. is this a duplicate, a different unit, or new info?") AND `existing_case_id` + `existing_case`. pass `reply` through verbatim. DO NOT retry `case_create`, DO NOT call `case_update` to overwrite — wait for the officer's clarification reply, then act on it. fallback if `reply` absent: `hi <officer> — case <last4> is already open at <addr>. duplicate, different unit, or new info on the same case?` |
 | `case_not_found` | `couldn't find that case — can you confirm the job no?` |
 | `invalid_job_no_format` | address the officer by first name when known: `hi <officer_first> — that job no looks off, should be like AM/JOB/YYMM/NNNN. can you re-check and resend?` |
 | `case_already_completed` | the photo / update came in after closure; let server's reply through (treats as warning). |
@@ -316,6 +331,24 @@ Remarks: water seeping under flush valve, urgent
 → tool: `case_create({job_no: "AM/JOB/2604/0411", address: "Blk 215 AMK Ave 4 #06-1334", unit: "#06-1334", block: "Blk 215", zone: "AM", tenant_name: "Mdm Goh", contact_phone: "92223334", problem: "water seeping under flush valve, urgent", source_msg_id: "<msgId>", officer_name: "Sharon Chia"})`
 → server returns `{ ok, case, reply: "Got it — Case AM/JOB/2604/0411 at Blk 215 #06-1334 logged. Tenant Mdm Goh. Due 6 May." }`
 → reply: pass `reply` verbatim.
+
+### example 1b — officer announcement with already-open job_no (collision)
+
+```
+[officer Sharon Chia]
+Job no: AM/JOB/2604/0411
+Address: Blk 215 AMK Ave 4 #06-1335
+Tenant: Mr Lim 91234567
+complaint: same block different unit, leaking
+```
+
+(case `AM/JOB/2604/0411` is already open at `Blk 215 #06-1334` for `Mdm Goh` — server detected via `getOpenCaseByJobNo`.)
+
+→ classify: officer_announcement
+→ tool: `case_create({job_no: "AM/JOB/2604/0411", address: "Blk 215 AMK Ave 4 #06-1335", unit: "#06-1335", tenant_name: "Mr Lim", contact_phone: "91234567", problem: "same block different unit, leaking", source_msg_id: "<msgId>", officer_name: "Sharon Chia"})`
+→ server returns 409 `{ ok: false, error: { code: "case_already_exists" }, existing_case_id: 168, existing_case: {...}, reply: "hi Sharon — case 0411 (AM/JOB/2604/0411) is already open at Blk 215 AMK Ave 4 #06-1334, tenant Mdm Goh, opened 2h ago. is this a duplicate of the same complaint, a different unit at the same job no, or new info on the same case?" }`
+→ reply: pass `reply` verbatim.
+→ DO NOT retry. DO NOT call `case_update` to overwrite. wait for the officer's threaded reply.
 
 ### example 2 — worker completion with photos (single message)
 
